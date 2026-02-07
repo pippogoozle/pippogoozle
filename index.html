@@ -1,20 +1,1307 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css"
-      integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog=="
-      crossorigin="anonymous"
-    />
-    <link rel="stylesheet" href="style.css" />
-    <title>3D Boxes Background</title>
-  </head>
-  <body>
-    <button id="btn" class="magic">Magic 🎩</button>
-    <div id="boxes" class="boxes big"></div>
-    <script src="script.js"></script>
-  </body>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Der verlorene Kristall - 3D Abenteuer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        #hud {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            padding: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        #info {
+            flex: 1;
+        }
+        #level {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4fc3f7;
+            margin-bottom: 5px;
+        }
+        #objective {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        #inventory {
+            background: rgba(0,0,0,0.6);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+        #inventory h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+        .item {
+            background: rgba(79, 195, 247, 0.2);
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        #message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 80%;
+            text-align: center;
+            pointer-events: none;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .key {
+            display: inline-block;
+            background: rgba(79, 195, 247, 0.3);
+            padding: 3px 8px;
+            border-radius: 3px;
+            margin: 0 2px;
+            font-weight: bold;
+        }
+        
+        /* Touch Controls */
+        #touchControls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+        #joystick {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            pointer-events: all;
+        }
+        #joystickBase {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: absolute;
+        }
+        #joystickStick {
+            width: 50px;
+            height: 50px;
+            background: rgba(79, 195, 247, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s;
+        }
+        .touchButton {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: rgba(79, 195, 247, 0.6);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            pointer-events: all;
+            user-select: none;
+        }
+        .touchButton:active {
+            background: rgba(79, 195, 247, 0.9);
+            transform: scale(0.95);
+        }
+        #jumpButton {
+            bottom: 30px;
+            right: 30px;
+        }
+        #interactButton {
+            bottom: 120px;
+            right: 30px;
+        }
+        #lookPad {
+            position: absolute;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            #controls {
+                display: none;
+            }
+        }
+        /* Touch controls always visible for testing */
+        #touchControls {
+            display: block !important;
+        }
+        #startScreen, #endScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 1000;
+        }
+        #endScreen {
+            display: none;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .subtitle {
+            font-size: 20px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        button {
+            background: #4fc3f7;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            pointer-events: all;
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.4);
+        }
+        button:hover {
+            background: #29b6f6;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 195, 247, 0.6);
+        }
+        #timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .story {
+            max-width: 600px;
+            text-align: center;
+            margin: 20px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>🔮 Der verlorene Kristall</h1>
+        <p class="subtitle">Ein 3D Abenteuer durch magische Welten</p>
+        <div class="story">
+            <p>Die magischen Kristalle, die das Gleichgewicht der Welten bewahren, wurden gestohlen und in verschiedenen Dimensionen versteckt. Du bist der einzige, der sie zurückholen kann.</p>
+            <p style="margin-top: 15px;">Durchquere 6 mystische Welten, löse Rätsel und sammle alle Kristalle, bevor es zu spät ist!</p>
+        </div>
+        <button onclick="startGame()">Abenteuer starten</button>
+        <button onclick="startFreeRoam()" style="margin-top: 15px; background: #9c27b0;">🌍 Freie Welt erkunden</button>
+    </div>
+
+    <div id="endScreen">
+        <h1>🎉 Glückwunsch!</h1>
+        <p class="subtitle">Du hast alle Kristalle gefunden!</p>
+        <div class="story">
+            <p id="finalTime"></p>
+            <p style="margin-top: 15px;">Das Gleichgewicht der Welten ist wiederhergestellt. Du bist ein wahrer Held!</p>
+        </div>
+        <button onclick="continueInFreeWorld()">🌍 In der freien Welt weiterspielen</button>
+        <button onclick="location.reload()" style="margin-top: 15px;">Nochmal von vorne spielen</button>
+    </div>
+
+    <div id="ui">
+        <div id="hud">
+            <div id="info">
+                <div id="level">Level 1: Der Wald der Anfänge</div>
+                <div id="objective">Finde den ersten Kristall</div>
+            </div>
+            <div id="inventory">
+                <h3>Inventar:</h3>
+                <div id="items"></div>
+            </div>
+        </div>
+        <div id="timer">Zeit: 0:00</div>
+    </div>
+
+    <div id="message"></div>
+    <div id="controls">
+        Steuerung: <span class="key">W A S D</span> Bewegen | <span class="key">LEERTASTE</span> Springen | <span class="key">E</span> Interagieren | <span class="key">MAUS</span> Umschauen
+    </div>
+
+    <div id="touchControls">
+        <div id="joystick">
+            <div id="joystickBase"></div>
+            <div id="joystickStick"></div>
+        </div>
+        <div id="jumpButton" class="touchButton">⬆</div>
+        <div id="interactButton" class="touchButton">E</div>
+        <div id="lookPad">👆<br>Umschauen</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, player;
+        let keys = {};
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let canJump = false;
+        let mouse = { x: 0, y: 0 };
+        let yaw = 0, pitch = 0;
+        let inventory = [];
+        let currentLevel = 0;  // Start at 0 so first load doesn't clear
+        let levelData = [];
+        let interactables = [];
+        let startTime, timerInterval;
+        let gameStarted = false;
+        let crystalsFound = 0;
+        const TOTAL_CRYSTALS = 7;
+
+        // Touch controls
+        let touchMovement = { x: 0, y: 0 };
+        let touchLook = { x: 0, y: 0 };
+        let joystickActive = false;
+        let lookPadActive = false;
+        let isMobile = true; // Always enable touch controls
+
+        // Level Definitionen
+        const levels = [
+            {
+                name: "Der Wald der Anfänge",
+                objective: "Finde den grünen Kristall im magischen Wald",
+                crystalColor: 0x00ff00,
+                fogColor: 0x88cc88,
+                groundColor: 0x2d5016,
+                platformColor: 0x8b4513,
+                puzzleType: "navigation"
+            },
+            {
+                name: "Die Wüste der Zeit",
+                objective: "Löse das Rätsel der drei Säulen",
+                crystalColor: 0xffaa00,
+                fogColor: 0xffddaa,
+                groundColor: 0xc2b280,
+                platformColor: 0x8b7355,
+                puzzleType: "pillars"
+            },
+            {
+                name: "Die eisige Höhle",
+                objective: "Springe über die gefrorenen Plattformen",
+                crystalColor: 0x00ffff,
+                fogColor: 0xccffff,
+                groundColor: 0x4a5f7f,
+                platformColor: 0x87ceeb,
+                puzzleType: "jumping"
+            },
+            {
+                name: "Der Vulkan des Feuers",
+                objective: "Navigiere durch die Lava-Plattformen",
+                crystalColor: 0xff0000,
+                fogColor: 0xff6633,
+                groundColor: 0x2f1a1a,
+                platformColor: 0x8b0000,
+                puzzleType: "lava"
+            },
+            {
+                name: "Der Himmelstempel",
+                objective: "Erreiche den Kristall in der Himmelsfestung",
+                crystalColor: 0xff00ff,
+                fogColor: 0xccccff,
+                groundColor: 0x4a4a7f,
+                platformColor: 0xffd700,
+                puzzleType: "tower"
+            },
+            {
+                name: "Die Unendliche Welt",
+                objective: "Erkunde die endlose Dimension und finde den letzten Kristall",
+                crystalColor: 0xffffff,
+                fogColor: 0x6699cc,
+                groundColor: 0x228b22,
+                platformColor: 0x696969,
+                puzzleType: "freeRoam"
+            }
+        ];
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameStarted = true;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Always show and init touch controls
+            document.getElementById('touchControls').style.display = 'block';
+            initTouchControls();
+            
+            init();
+            animate();
+        }
+
+        function startFreeRoam() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameStarted = true;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Always show and init touch controls
+            document.getElementById('touchControls').style.display = 'block';
+            initTouchControls();
+            
+            init();
+            // Load level 6 directly (free roam world)
+            loadLevel(6);
+            animate();
+        }
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('timer').textContent = `Zeit: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function init() {
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            // Add basic lights first
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Create player
+            createPlayer();
+
+            // Load first level
+            loadLevel(1);
+
+            document.addEventListener('keydown', (e) => {
+                keys[e.key.toLowerCase()] = true;
+                if (e.key.toLowerCase() === 'e') {
+                    checkInteraction();
+                }
+            });
+            document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('click', () => {
+                renderer.domElement.requestPointerLock();
+            });
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createPlayer() {
+            const geometry = new THREE.BoxGeometry(1, 2, 1);
+            const material = new THREE.MeshStandardMaterial({ color: 0x4fc3f7 });
+            player = new THREE.Mesh(geometry, material);
+            player.position.y = 5;
+            player.castShadow = true;
+            scene.add(player);
+        }
+
+        function loadLevel(levelNum) {
+            // Only clear on level change, not on first load
+            if (currentLevel > 0) {
+                // Clear previous level objects (but keep player, lights, camera)
+                const objectsToRemove = [];
+                scene.children.forEach(child => {
+                    if (child !== player && child.type !== 'AmbientLight' && child.type !== 'DirectionalLight') {
+                        objectsToRemove.push(child);
+                    }
+                });
+                objectsToRemove.forEach(obj => scene.remove(obj));
+            }
+            
+            interactables = [];
+            
+            const level = levels[levelNum - 1];
+            currentLevel = levelNum;
+            
+            document.getElementById('level').textContent = `Level ${levelNum}: ${level.name}`;
+            document.getElementById('objective').textContent = level.objective;
+            
+            scene.fog = new THREE.Fog(level.fogColor, 10, 100);
+            scene.background = new THREE.Color(level.fogColor);
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: level.groundColor });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Reset player position
+            player.position.set(0, 5, 0);
+            velocity.set(0, 0, 0);
+
+            // Level-specific content
+            switch(level.puzzleType) {
+                case 'navigation':
+                    createForestLevel(level);
+                    break;
+                case 'pillars':
+                    createDesertLevel(level);
+                    break;
+                case 'jumping':
+                    createIceLevel(level);
+                    break;
+                case 'lava':
+                    createVolcanoLevel(level);
+                    break;
+                case 'tower':
+                    createTowerLevel(level);
+                    break;
+                case 'freeRoam':
+                    createFreeRoamLevel(level);
+                    break;
+            }
+
+            showMessage(`${level.name} - ${level.objective}`, 3000);
+        }
+
+        function createForestLevel(level) {
+            // Trees
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * 80 - 40;
+                const z = Math.random() * 80 - 40;
+                if (Math.abs(x) < 5 && Math.abs(z) < 5) continue;
+                
+                const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 5, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3020 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.set(x, 2.5, z);
+                trunk.castShadow = true;
+                scene.add(trunk);
+
+                const foliageGeometry = new THREE.SphereGeometry(3, 8, 8);
+                const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.set(x, 7, z);
+                foliage.castShadow = true;
+                scene.add(foliage);
+            }
+
+            // Path markers
+            for (let i = 0; i < 5; i++) {
+                const marker = createBox(i * 8 - 16, 1, -10 + i * 4, 1, 2, 1, 0xffaa00);
+                scene.add(marker);
+            }
+
+            // Crystal at the end
+            const crystal = createCrystal(20, 3, 5, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createDesertLevel(level) {
+            // Three pillars puzzle - climbable stairs
+            const pillarPositions = [
+                { x: -10, z: -10, height: 3, active: false },
+                { x: 0, z: -10, height: 5, active: false },
+                { x: 10, z: -10, height: 7, active: false }
+            ];
+
+            pillarPositions.forEach((pos, index) => {
+                // Create stepped platforms to climb
+                for (let step = 0; step < pos.height; step++) {
+                    const stepPlatform = createBox(pos.x, step + 0.5, pos.z, 3, 1, 3, level.platformColor);
+                    scene.add(stepPlatform);
+                }
+                
+                // Top glowing part
+                const pillar = createBox(pos.x, pos.height + 0.5, pos.z, 3, 1, 3, level.platformColor);
+                pillar.userData = { type: 'pillar', index: index, activated: false };
+                interactables.push(pillar);
+                scene.add(pillar);
+
+                // Activation platform
+                const platform = createBox(pos.x, 0.2, pos.z + 5, 2, 0.4, 2, 0xffaa00);
+                platform.userData = { type: 'activator', pillarIndex: index };
+                interactables.push(platform);
+                scene.add(platform);
+            });
+
+            // Crystal appears after all pillars activated - lower position
+            const crystal = createCrystal(0, 9, -10, level.crystalColor);
+            crystal.visible = false;
+            crystal.userData = { type: 'hiddenCrystal' };
+            scene.add(crystal);
+        }
+
+        function createIceLevel(level) {
+            // Jumping platforms
+            const platforms = [
+                { x: 0, y: 1, z: 0, size: 5 },
+                { x: 8, y: 2, z: -5, size: 3 },
+                { x: 15, y: 3, z: -8, size: 3 },
+                { x: 20, y: 5, z: -3, size: 3 },
+                { x: 25, y: 7, z: -10, size: 4 }
+            ];
+
+            platforms.forEach(p => {
+                const platform = createBox(p.x, p.y, p.z, p.size, 1, p.size, level.platformColor);
+                scene.add(platform);
+            });
+
+            const crystal = createCrystal(25, 10, -10, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createVolcanoLevel(level) {
+            // Lava (danger zone)
+            const lavaGeometry = new THREE.PlaneGeometry(100, 100);
+            const lavaMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff4500,
+                emissive: 0xff2200,
+                emissiveIntensity: 0.5
+            });
+            const lava = new THREE.Mesh(lavaGeometry, lavaMaterial);
+            lava.rotation.x = -Math.PI / 2;
+            lava.position.y = -2;
+            scene.add(lava);
+
+            // Safe platforms above lava
+            const safePlatforms = [
+                { x: 0, y: 2, z: 0 },
+                { x: 5, y: 3, z: -5 },
+                { x: 10, y: 2, z: -10 },
+                { x: 15, y: 4, z: -8 },
+                { x: 22, y: 6, z: -12 },
+                { x: 30, y: 8, z: -10 }
+            ];
+
+            safePlatforms.forEach(p => {
+                const platform = createBox(p.x, p.y, p.z, 4, 1, 4, level.platformColor);
+                scene.add(platform);
+            });
+
+            const crystal = createCrystal(30, 11, -10, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createTowerLevel(level) {
+            // Spiral staircase to the sky
+            for (let i = 0; i < 21; i++) {
+                const angle = (i * Math.PI) / 4;
+                const radius = 10;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = i * 2 + 1;
+
+                const step = createBox(x, y, z, 4, 1, 4, level.platformColor);
+                scene.add(step);
+            }
+
+            // Crystal on the last step
+            const angle = (20 * Math.PI) / 4;
+            const radius = 10;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = 20 * 2 + 1;
+
+            const crystal = createCrystal(x, y + 3, z, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createFreeRoamLevel(level) {
+            // Infinite procedurally generated world
+            // We'll generate chunks around the player as they move
+            
+            // Initial spawn area with some structures
+            createInitialSpawnArea(level);
+            
+            // Start the infinite world generation
+            window.generatedChunks = new Set();
+            window.chunkSize = 40;
+            window.renderDistance = 3; // How many chunks away to render
+        }
+
+        function createInitialSpawnArea(level) {
+            // Starting platform
+            const spawn = createBox(0, 1, 0, 20, 2, 20, 0x32cd32);
+            scene.add(spawn);
+            
+            // Welcome structure - a tower to climb with crystal on top
+            for (let i = 0; i < 11; i++) {
+                const step = createBox(0, i * 2 + 3, 15, 4, 1, 4, 0xffd700);
+                scene.add(step);
+            }
+            
+            // First crystal on top of the tower
+            const crystal1 = createCrystal(0, 26, 15, level.crystalColor);
+            scene.add(crystal1);
+            
+            // Second crystal on a floating island
+            const floatingIsland = createBox(-40, 15, -40, 12, 3, 12, 0xff1493);
+            scene.add(floatingIsland);
+            
+            // Path to the floating island
+            const platforms = [
+                { x: -8, y: 3, z: -8 },
+                { x: -15, y: 5, z: -15 },
+                { x: -22, y: 8, z: -22 },
+                { x: -30, y: 11, z: -30 },
+                { x: -36, y: 13, z: -36 }
+            ];
+            
+            platforms.forEach(p => {
+                const platform = createBox(p.x, p.y, p.z, 4, 1, 4, 0x9370db);
+                scene.add(platform);
+            });
+            
+            const crystal2 = createCrystal(-40, 19, -40, 0x00ffff);
+            scene.add(crystal2);
+            
+            // Some initial guidance platforms
+            for (let i = 1; i < 8; i++) {
+                const platform = createBox(i * 6, 1, -10, 4, 1, 4, 0x4fc3f7);
+                scene.add(platform);
+            }
+        }
+
+        function getChunkKey(chunkX, chunkZ) {
+            return `${chunkX},${chunkZ}`;
+        }
+
+        function generateChunk(chunkX, chunkZ, level) {
+            const chunkKey = getChunkKey(chunkX, chunkZ);
+            if (window.generatedChunks.has(chunkKey)) return;
+            
+            window.generatedChunks.add(chunkKey);
+            
+            const offsetX = chunkX * window.chunkSize;
+            const offsetZ = chunkZ * window.chunkSize;
+            
+            // Seed for this chunk (for consistent generation)
+            const seed = chunkX * 73856093 ^ chunkZ * 19349663;
+            
+            function seededRandom(offset = 0) {
+                const x = Math.sin(seed + offset) * 10000;
+                return x - Math.floor(x);
+            }
+            
+            // Generate different types of structures based on chunk position
+            const structureType = Math.floor(seededRandom(0) * 10);
+            
+            switch(structureType) {
+                case 0: // Forest
+                    for (let i = 0; i < 15; i++) {
+                        const x = offsetX + seededRandom(i * 2) * window.chunkSize;
+                        const z = offsetZ + seededRandom(i * 2 + 1) * window.chunkSize;
+                        
+                        const trunk = createBox(x, 2.5, z, 1, 5, 1, 0x4a3020);
+                        trunk.userData.chunk = chunkKey;
+                        scene.add(trunk);
+                        
+                        const leaves = createBox(x, 6, z, 4, 3, 4, 0x228b22);
+                        leaves.userData.chunk = chunkKey;
+                        scene.add(leaves);
+                    }
+                    break;
+                    
+                case 1: // Tower
+                    const towerX = offsetX + window.chunkSize / 2;
+                    const towerZ = offsetZ + window.chunkSize / 2;
+                    const height = Math.floor(seededRandom(10) * 20) + 10;
+                    
+                    for (let h = 0; h < height; h++) {
+                        const tower = createBox(towerX, h + 0.5, towerZ, 4, 1, 4, 0x696969);
+                        tower.userData.chunk = chunkKey;
+                        scene.add(tower);
+                    }
+                    break;
+                    
+                case 2: // Pyramid
+                    const pyramidX = offsetX + window.chunkSize / 2;
+                    const pyramidZ = offsetZ + window.chunkSize / 2;
+                    const pyramidHeight = Math.floor(seededRandom(11) * 8) + 5;
+                    
+                    for (let i = 0; i < pyramidHeight; i++) {
+                        const size = (pyramidHeight - i) * 2;
+                        const pyramid = createBox(pyramidX, i + 0.5, pyramidZ, size, 1, size, 0xc2b280);
+                        pyramid.userData.chunk = chunkKey;
+                        scene.add(pyramid);
+                    }
+                    break;
+                    
+                case 3: // Platforms in circle
+                    const centerX = offsetX + window.chunkSize / 2;
+                    const centerZ = offsetZ + window.chunkSize / 2;
+                    const radius = 15;
+                    
+                    for (let i = 0; i < 12; i++) {
+                        const angle = (i / 12) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const z = centerZ + Math.sin(angle) * radius;
+                        const y = Math.sin(i * 0.5 + seededRandom(12)) * 3 + 5;
+                        
+                        const platform = createBox(x, y, z, 3, 0.5, 3, 0x4fc3f7);
+                        platform.userData.chunk = chunkKey;
+                        scene.add(platform);
+                    }
+                    break;
+                    
+                case 4: // Bridge
+                    const bridgeStartX = offsetX + 5;
+                    const bridgeZ = offsetZ + window.chunkSize / 2;
+                    const bridgeLength = Math.floor(seededRandom(13) * 10) + 8;
+                    
+                    for (let i = 0; i < bridgeLength; i++) {
+                        const bridge = createBox(bridgeStartX + i * 2, 3, bridgeZ, 2, 0.5, 6, 0x8b4513);
+                        bridge.userData.chunk = chunkKey;
+                        scene.add(bridge);
+                    }
+                    break;
+                    
+                case 5: // Floating islands
+                    for (let i = 0; i < 4; i++) {
+                        const x = offsetX + seededRandom(i * 3) * window.chunkSize;
+                        const z = offsetZ + seededRandom(i * 3 + 1) * window.chunkSize;
+                        const y = seededRandom(i * 3 + 2) * 10 + 10;
+                        const size = Math.floor(seededRandom(i * 3 + 3) * 5) + 5;
+                        
+                        const island = createBox(x, y, z, size, 2, size, 0x32cd32);
+                        island.userData.chunk = chunkKey;
+                        scene.add(island);
+                    }
+                    break;
+                    
+                case 6: // Stone circle
+                    const circleX = offsetX + window.chunkSize / 2;
+                    const circleZ = offsetZ + window.chunkSize / 2;
+                    const circleRadius = 12;
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const x = circleX + Math.cos(angle) * circleRadius;
+                        const z = circleZ + Math.sin(angle) * circleRadius;
+                        
+                        const stone = createBox(x, 3, z, 2, 6, 2, 0x808080);
+                        stone.userData.chunk = chunkKey;
+                        scene.add(stone);
+                    }
+                    break;
+                    
+                case 7: // Maze
+                    for (let i = 0; i < 20; i++) {
+                        const x = offsetX + Math.floor(seededRandom(i * 4) * 8) * 5;
+                        const z = offsetZ + Math.floor(seededRandom(i * 4 + 1) * 8) * 5;
+                        
+                        const wall = createBox(x, 2, z, 4, 4, 2, 0x228b22);
+                        wall.userData.chunk = chunkKey;
+                        scene.add(wall);
+                    }
+                    break;
+                    
+                case 8: // Mountain
+                    const mountainX = offsetX + window.chunkSize / 2;
+                    const mountainZ = offsetZ + window.chunkSize / 2;
+                    const mountainHeight = Math.floor(seededRandom(14) * 12) + 8;
+                    
+                    for (let i = 0; i < mountainHeight; i++) {
+                        const size = 12 - i * 0.5;
+                        const mountain = createBox(mountainX, i + 0.5, mountainZ, size, 1, size, 0x8b8989);
+                        mountain.userData.chunk = chunkKey;
+                        scene.add(mountain);
+                    }
+                    break;
+                    
+                case 9: // Rainbow platforms
+                    const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x4b0082, 0x9400d3];
+                    const rainbowX = offsetX + 10;
+                    
+                    for (let i = 0; i < 7; i++) {
+                        const rainbow = createBox(rainbowX + i * 4, 5 + i * 0.5, offsetZ + window.chunkSize / 2, 3, 0.5, 2, colors[i]);
+                        rainbow.userData.chunk = chunkKey;
+                        scene.add(rainbow);
+                    }
+                    break;
+            }
+            
+            // Add some random decorative elements to every chunk
+            for (let i = 0; i < 5; i++) {
+                const x = offsetX + seededRandom(i * 5 + 100) * window.chunkSize;
+                const z = offsetZ + seededRandom(i * 5 + 101) * window.chunkSize;
+                const y = seededRandom(i * 5 + 102) * 3 + 1;
+                
+                const deco = createBox(x, y, z, 1, 1, 1, 0x00ffff);
+                deco.userData.chunk = chunkKey;
+                scene.add(deco);
+            }
+        }
+
+        function updateInfiniteWorld(playerPosition, level) {
+            if (!window.generatedChunks) return;
+            
+            const playerChunkX = Math.floor(playerPosition.x / window.chunkSize);
+            const playerChunkZ = Math.floor(playerPosition.z / window.chunkSize);
+            
+            // Generate chunks around player
+            for (let dx = -window.renderDistance; dx <= window.renderDistance; dx++) {
+                for (let dz = -window.renderDistance; dz <= window.renderDistance; dz++) {
+                    generateChunk(playerChunkX + dx, playerChunkZ + dz, level);
+                }
+            }
+            
+            // Optional: Remove far chunks to save memory (disabled for now to keep structures)
+            // You could add chunk unloading here if needed
+        }
+
+        function createBox(x, y, z, w, h, d, color) {
+            const geometry = new THREE.BoxGeometry(w, h, d);
+            const material = new THREE.MeshStandardMaterial({ color: color });
+            const box = new THREE.Mesh(geometry, material);
+            box.position.set(x, y, z);
+            box.castShadow = true;
+            box.receiveShadow = true;
+            return box;
+        }
+
+        function createCrystal(x, y, z, color) {
+            const geometry = new THREE.OctahedronGeometry(1.5, 0);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.8
+            });
+            const crystal = new THREE.Mesh(geometry, material);
+            crystal.position.set(x, y, z);
+            crystal.userData = { type: 'crystal', collected: false };
+            interactables.push(crystal);
+            return crystal;
+        }
+
+        function checkInteraction() {
+            const playerPos = player.position;
+            
+            interactables.forEach(obj => {
+                const distance = playerPos.distanceTo(obj.position);
+                
+                // Check for both crystal types
+                if (distance < 5 && (obj.userData.type === 'crystal' || obj.userData.type === 'hiddenCrystal') && !obj.userData.collected) {
+                    obj.userData.collected = true;
+                    scene.remove(obj);
+                    crystalsFound++;
+                    addToInventory(`Kristall ${crystalsFound}`);
+                    showMessage(`Kristall gefunden! (${crystalsFound}/${TOTAL_CRYSTALS})`, 2000);
+                    
+                    if (crystalsFound < TOTAL_CRYSTALS) {
+                        // Only auto-advance if not in free world (level 6)
+                        if (currentLevel !== 6) {
+                            setTimeout(() => loadLevel(currentLevel + 1), 2000);
+                        }
+                    } else {
+                        endGame();
+                    }
+                }
+
+                if (distance < 5 && obj.userData.type === 'activator') {
+                    const pillarIndex = obj.userData.pillarIndex;
+                    activatePillar(pillarIndex);
+                }
+            });
+        }
+
+        function activatePillar(index) {
+            const pillars = interactables.filter(obj => obj.userData.type === 'pillar');
+            if (pillars[index] && !pillars[index].userData.activated) {
+                pillars[index].userData.activated = true;
+                pillars[index].material.emissive = new THREE.Color(0x00ff00);
+                pillars[index].material.emissiveIntensity = 0.5;
+                
+                showMessage(`Säule ${index + 1} aktiviert!`, 1500);
+                
+                // Check if all pillars activated
+                if (pillars.every(p => p.userData.activated)) {
+                    const crystal = scene.children.find(obj => obj.userData.type === 'hiddenCrystal');
+                    if (crystal) {
+                        crystal.visible = true;
+                        showMessage('Der Kristall erscheint!', 2000);
+                    }
+                }
+            }
+        }
+
+        function addToInventory(item) {
+            inventory.push(item);
+            updateInventoryDisplay();
+        }
+
+        function updateInventoryDisplay() {
+            const itemsDiv = document.getElementById('items');
+            itemsDiv.innerHTML = inventory.map(item => `<div class="item">${item}</div>`).join('');
+        }
+
+        function showMessage(text, duration) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.style.opacity = '1';
+            setTimeout(() => {
+                msg.style.opacity = '0';
+            }, duration);
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            
+            document.getElementById('finalTime').textContent = 
+                `Du hast das Spiel in ${minutes} Minuten und ${seconds} Sekunden abgeschlossen!`;
+            document.getElementById('endScreen').style.display = 'flex';
+        }
+
+        function continueInFreeWorld() {
+            document.getElementById('endScreen').style.display = 'none';
+            // Load level 6 (free world) if not already there
+            if (currentLevel !== 6) {
+                loadLevel(6);
+            }
+        }
+
+        function initTouchControls() {
+            const joystick = document.getElementById('joystick');
+            const joystickStick = document.getElementById('joystickStick');
+            const jumpButton = document.getElementById('jumpButton');
+            const interactButton = document.getElementById('interactButton');
+            const lookPad = document.getElementById('lookPad');
+
+            // Joystick for movement (touch + mouse)
+            joystick.addEventListener('touchstart', handleJoystickStart);
+            joystick.addEventListener('mousedown', handleJoystickStart);
+
+            joystick.addEventListener('touchmove', handleJoystickMove);
+            joystick.addEventListener('mousemove', handleJoystickMove);
+
+            joystick.addEventListener('touchend', handleJoystickEnd);
+            joystick.addEventListener('mouseup', handleJoystickEnd);
+            joystick.addEventListener('mouseleave', handleJoystickEnd);
+
+            function handleJoystickStart(e) {
+                e.preventDefault();
+                joystickActive = true;
+            }
+
+            function handleJoystickMove(e) {
+                e.preventDefault();
+                if (!joystickActive) return;
+
+                const touch = e.touches ? e.touches[0] : e;
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                let deltaX = touch.clientX - centerX;
+                let deltaY = touch.clientY - centerY;
+
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const maxDistance = 35;
+
+                if (distance > maxDistance) {
+                    deltaX = (deltaX / distance) * maxDistance;
+                    deltaY = (deltaY / distance) * maxDistance;
+                }
+
+                joystickStick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+
+                touchMovement.x = deltaX / maxDistance;
+                touchMovement.y = deltaY / maxDistance;
+            }
+
+            function handleJoystickEnd() {
+                joystickActive = false;
+                joystickStick.style.transform = 'translate(-50%, -50%)';
+                touchMovement.x = 0;
+                touchMovement.y = 0;
+            }
+
+            // Jump button (touch + mouse)
+            jumpButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[' '] = true;
+            });
+            jumpButton.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                keys[' '] = true;
+            });
+
+            jumpButton.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[' '] = false;
+            });
+            jumpButton.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                keys[' '] = false;
+            });
+
+            // Interact button (touch + mouse)
+            interactButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                checkInteraction();
+            });
+            interactButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                checkInteraction();
+            });
+
+            // Look pad for camera (touch + mouse)
+            let lookStartX = 0, lookStartY = 0;
+
+            lookPad.addEventListener('touchstart', handleLookStart);
+            lookPad.addEventListener('mousedown', handleLookStart);
+
+            lookPad.addEventListener('touchmove', handleLookMove);
+            lookPad.addEventListener('mousemove', handleLookMove);
+
+            lookPad.addEventListener('touchend', handleLookEnd);
+            lookPad.addEventListener('mouseup', handleLookEnd);
+            lookPad.addEventListener('mouseleave', handleLookEnd);
+
+            function handleLookStart(e) {
+                e.preventDefault();
+                lookPadActive = true;
+                const touch = e.touches ? e.touches[0] : e;
+                lookStartX = touch.clientX;
+                lookStartY = touch.clientY;
+            }
+
+            function handleLookMove(e) {
+                e.preventDefault();
+                if (!lookPadActive) return;
+
+                const touch = e.touches ? e.touches[0] : e;
+                const deltaX = touch.clientX - lookStartX;
+                const deltaY = touch.clientY - lookStartY;
+
+                yaw -= deltaX * 0.005;
+                pitch -= deltaY * 0.005;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+
+                lookStartX = touch.clientX;
+                lookStartY = touch.clientY;
+            }
+
+            function handleLookEnd() {
+                lookPadActive = false;
+            }
+        }
+
+        function onMouseMove(event) {
+            if (document.pointerLockElement === renderer.domElement) {
+                yaw -= event.movementX * 0.002;
+                pitch -= event.movementY * 0.002;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updatePlayer(delta) {
+            const speed = 15;
+            const jumpForce = 10;
+
+            direction.set(0, 0, 0);
+
+            // Keyboard controls
+            if (keys['s']) direction.z -= 1;
+            if (keys['w']) direction.z += 1;
+            if (keys['d']) direction.x -= 1;
+            if (keys['a']) direction.x += 1;
+
+            // Touch controls
+            if (isMobile && joystickActive) {
+                direction.x -= touchMovement.x;  // Invertiert für korrekte Richtung
+                direction.z -= touchMovement.y;  // Invertiert für korrekte Richtung
+            }
+
+            direction.normalize();
+            direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+            velocity.x = direction.x * speed;
+            velocity.z = direction.z * speed;
+
+            // Gravity
+            velocity.y -= 30 * delta;
+
+            if (keys[' '] && canJump) {
+                velocity.y = jumpForce;
+                canJump = false;
+            }
+
+            player.position.x += velocity.x * delta;
+            player.position.y += velocity.y * delta;
+            player.position.z += velocity.z * delta;
+
+            // Platform collision detection
+            let onPlatform = false;
+            let highestPlatform = -Infinity;
+            
+            scene.children.forEach(obj => {
+                if (obj.geometry && obj.geometry.type === 'BoxGeometry' && obj !== player) {
+                    const box = new THREE.Box3().setFromObject(obj);
+                    const playerBox = new THREE.Box3().setFromObject(player);
+                    
+                    // Check if player is above platform
+                    if (playerBox.min.x < box.max.x && playerBox.max.x > box.min.x &&
+                        playerBox.min.z < box.max.z && playerBox.max.z > box.min.z) {
+                        
+                        // Player is within platform X/Z bounds
+                        const platformTop = box.max.y;
+                        
+                        if (player.position.y >= platformTop - 0.5 && player.position.y <= platformTop + 2 && velocity.y <= 0) {
+                            if (platformTop > highestPlatform) {
+                                highestPlatform = platformTop;
+                                onPlatform = true;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Apply platform collision
+            if (onPlatform && highestPlatform > -Infinity) {
+                player.position.y = highestPlatform + 1;
+                velocity.y = 0;
+                canJump = true;
+            }
+
+            // Ground collision (only if not on platform)
+            if (!onPlatform && player.position.y < 1) {
+                player.position.y = 1;
+                velocity.y = 0;
+                canJump = true;
+            }
+
+            // Death zone (lava)
+            if (player.position.y < -5) {
+                player.position.set(0, 5, 0);
+                velocity.set(0, 0, 0);
+                showMessage('Du bist in die Lava gefallen!', 2000);
+            }
+
+            // Camera follows player
+            camera.position.x = player.position.x - Math.sin(yaw) * 10;
+            camera.position.y = player.position.y + 5;
+            camera.position.z = player.position.z - Math.cos(yaw) * 10;
+
+            camera.lookAt(player.position.x, player.position.y + 2, player.position.z);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = 0.016; // ~60fps
+            updatePlayer(delta);
+
+            // Update infinite world if in free roam level
+            if (currentLevel === 6 && levels[currentLevel - 1]) {
+                updateInfiniteWorld(player.position, levels[currentLevel - 1]);
+            }
+
+            // Rotate crystals
+            interactables.forEach(obj => {
+                if (obj.userData.type === 'crystal' || obj.userData.type === 'hiddenCrystal') {
+                    obj.rotation.y += 0.02;
+                    obj.position.y += Math.sin(Date.now() * 0.002) * 0.01;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
 </html>

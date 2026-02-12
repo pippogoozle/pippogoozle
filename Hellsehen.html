@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Hellsehen</title>
+    <style>
+      body {
+        background: url("https://img.freepik.com/fotos-premium/schoene-gruene-farbe-diamant-weisser-hintergrund-ai-generiertes-bild_848903-1142.jpg");
+        background-size: cover;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        font-family: Arial, sans-serif;
+        color: white;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
+        text-align: center;
+        padding-top: 50px;
+      }
+
+      input {
+        padding: 5px;
+        font-size: 16px;
+      }
+
+      button {
+        padding: 5px 10px;
+        font-size: 16px;
+        margin-left: 10px;
+        cursor: pointer;
+      }
+
+      p#an {
+        font-size: 24px;
+        margin-top: 20px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Hellsehen 🔮</h1>
+    <h2>Tipp deine Frage ein:</h2>
+    <input type="text" id="Frage">
+    <button onclick="ant()">Antworten</button>
+    <p id="an"></p>
+
+    <script>
+      var b = document.getElementById("an");
+      var c = document.getElementById("Frage");
+
+      function ant() {
+        var a = Math.floor(Math.random() * 3); // erzeugt 0,1,2
+
+        if(a === 0) {
+          b.innerHTML = "Ja";
+        } else if(a === 1) {
+          b.innerHTML = "Vielleicht";
+        } else {
+          b.innerHTML = "Nein";
+        }
+
+        // Eingabefeld nach Antwort leeren
+        c.value = "";
+      }
+    </script>
+  </body>
+</html>

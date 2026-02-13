@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Klettersspiel</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+            background: #000;
+        }
+        #canvas {
+            display: block;
+        }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10;
+        }
+        #lockPrompt {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            text-align: center;
+            z-index: 10;
+            font-size: 12px;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 40px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            display: none;
+            z-index: 20;
+        }
+        #gameOver h1 {
+            margin: 0 0 20px 0;
+            font-size: 32px;
+        }
+        #gameOver p {
+            margin: 10px 0;
+            font-size: 18px;
+        }
+        #gameOver button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #gameOver button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="info">
+        <div>Höhe: <span id="height">0</span>m</div>
+        <div>Tempo: <span id="speed">0</span>m/s</div>
+        <div>🎮 WASD zum Bewegen | LEERZEICHEN zum Springen | MAUS zum Schauen</div>
+    </div>
+    <div id="lockPrompt">Klick auf das Spiel um Maus zu aktivieren</div>
+    <div id="gameOver">
+        <h1>GAME OVER!</h1>
+        <p>Höhe erreicht: <span id="finalHeight">0</span>m</p>
+        <button onclick="location.reload()">Neues Spiel</button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ===== SETUP =====
+        const canvas = document.getElementById('canvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 150, 250);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 0);
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+
+        // ===== BELEUCHTUNG =====
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(50, 50, 50);
+        light.shadow.mapSize.width = 2048;
+        light.shadow.mapSize.height = 2048;
+        light.shadow.camera.left = -100;
+        light.shadow.camera.right = 100;
+        light.shadow.camera.top = 100;
+        light.shadow.camera.bottom = -100;
+        light.castShadow = true;
+        scene.add(light);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+        // ===== SPIELER =====
+        const playerGeometry = new THREE.BoxGeometry(0.6, 1.8, 0.6);
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0xff6b6b });
+        const player = new THREE.Mesh(playerGeometry, playerMaterial);
+        player.castShadow = true;
+        player.receiveShadow = true;
+        player.position.y = 1;
+        scene.add(player);
+
+        const playerState = {
+            velocity: new THREE.Vector3(0, 0, 0),
+            isOnGround: false,
+            isClimbing: false,
+            maxHeight: 0,
+            health: 100,
+            yaw: 0,
+            pitch: 0
+        };
+
+        // ===== EINGABE =====
+        const keys = {};
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                if (playerState.isOnGround) {
+                    playerState.velocity.y = 8;
+                    playerState.isOnGround = false;
+                }
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // ===== MAUS-KONTROLLE =====
+        let isPointerLocked = false;
+
+        canvas.addEventListener('click', () => {
+            canvas.requestPointerLock = canvas.requestPointerLock || canvas.mozRequestPointerLock;
+            canvas.requestPointerLock();
+        });
+
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = document.pointerLockElement === canvas;
+            document.getElementById('lockPrompt').style.display = isPointerLocked ? 'none' : 'block';
+        });
+
+        document.addEventListener('mozpointerlockchange', () => {
+            isPointerLocked = document.mozPointerLockElement === canvas;
+            document.getElementById('lockPrompt').style.display = isPointerLocked ? 'none' : 'block';
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPointerLocked) {
+                const sensitivity = 0.003;
+                playerState.yaw -= e.movementX * sensitivity;
+                playerState.pitch -= e.movementY * sensitivity;
+                
+                // Pitch begrenzen
+                playerState.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, playerState.pitch));
+                
+                // Kamera orientieren
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = playerState.yaw;
+                camera.rotation.x = playerState.pitch;
+            }
+        });
+
+        // ===== PLATTFORMEN (KLETTERWAND) =====
+        const platforms = [];
+
+        function createPlatform(x, y, z, width, height, depth, color = 0x8B4513) {
+            const geometry = new THREE.BoxGeometry(width, height, depth);
+            const material = new THREE.MeshStandardMaterial({ color, roughness: 0.7 });
+            const platform = new THREE.Mesh(geometry, material);
+            platform.position.set(x, y, z);
+            platform.castShadow = true;
+            platform.receiveShadow = true;
+            scene.add(platform);
+            platforms.push({
+                mesh: platform,
+                x, y, z, width, height, depth
+            });
+            return platform;
+        }
+
+        // Startplattform
+        createPlatform(0, 0, 0, 20, 0.5, 20, 0x228B22);
+
+        // ===== SPIRALFÖRMIGE KLETTERWAND =====
+        // Plattformen in einer Spirale anordnen - garantiert erreichbar
+        let currentHeight = 2;
+        let platformSpacing = 2.2;  // Verringert für besseres Springen
+        let platformCount = 35;
+        let spiralRadius = 8;
+
+        for (let i = 0; i < platformCount; i++) {
+            // Spirale berechnen
+            const angle = (i / platformCount) * Math.PI * 4;  // 2 volle Rotationen
+            const radius = spiralRadius * (1 + i / platformCount * 0.5);  // Radius wächst
+            
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = currentHeight;
+
+            const platformWidth = 4;
+            const platformDepth = 4;
+            const baseColor = 0x8B4513;
+            const color = baseColor + Math.floor((i / platformCount) * 0x4444);
+            
+            createPlatform(x, y, z, platformWidth, 0.5, platformDepth, color);
+            
+            // Nächste Plattform höher
+            currentHeight += platformSpacing;
+        }
+
+        // ===== ZUSÄTZLICHE SEITENWEGE (OPTIONAL) =====
+        // Ein paar alternative Pfade für Abwechslung
+        for (let i = 0; i < 15; i++) {
+            const angle = (i / 15) * Math.PI * 2;
+            const radius = 15;
+            const y = 5 + i * 3;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            
+            createPlatform(x, y, z, 3.5, 0.5, 3.5, 0xD2691E);
+        }
+
+        // ===== VERBESSERUNGEN =====
+        function addUpgrade(x, y, z, type = 'health') {
+            const geometry = new THREE.OctahedronGeometry(0.3);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: type === 'health' ? 0xff1744 : 0xffeb3b,
+                emissive: type === 'health' ? 0xff1744 : 0xffeb3b,
+                emissiveIntensity: 0.5
+            });
+            const upgrade = new THREE.Mesh(geometry, material);
+            upgrade.position.set(x, y, z);
+            upgrade.castShadow = true;
+            upgrade.userData.type = type;
+            upgrade.userData.active = true;
+            scene.add(upgrade);
+            return upgrade;
+        }
+
+        // Upgrades auf Plattformen
+        for (let i = 0; i < platforms.length; i += 3) {
+            const p = platforms[i];
+            addUpgrade(p.x, p.y + 1, p.z, Math.random() < 0.7 ? 'health' : 'speed');
+        }
+
+        // ===== SPIELSCHLEIFE =====
+        const gravity = -15;
+        const moveSpeed = 6;
+        let lastTime = Date.now();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const now = Date.now();
+            const deltaTime = (now - lastTime) / 1000;
+            lastTime = now;
+
+            // SPIELER-BEWEGUNG
+            const moveVector = new THREE.Vector3(0, 0, 0);
+            if (keys['w'] || keys['arrowup']) moveVector.z -= moveSpeed;
+            if (keys['s'] || keys['arrowdown']) moveVector.z += moveSpeed;
+            if (keys['a'] || keys['arrowleft']) moveVector.x -= moveSpeed;
+            if (keys['d'] || keys['arrowright']) moveVector.x += moveSpeed;
+
+            // Bewegung zur Kamera-Orientierung
+            if (moveVector.length() > 0) {
+                const cameraDirection = new THREE.Quaternion();
+                cameraDirection.setFromAxisAngle(new THREE.Vector3(0, 1, 0), playerState.yaw);
+                moveVector.applyQuaternion(cameraDirection);
+            }
+
+            playerState.velocity.x = moveVector.x;
+            playerState.velocity.z = moveVector.z;
+            playerState.velocity.y += gravity * deltaTime;
+            playerState.velocity.y = Math.max(-20, playerState.velocity.y);
+
+            player.position.addScaledVector(playerState.velocity, deltaTime);
+
+            // KOLLISION & PLATTFORMEN
+            playerState.isOnGround = false;
+            playerState.isClimbing = false;
+
+            for (let platform of platforms) {
+                const px = platform.x;
+                const py = platform.y;
+                const pz = platform.z;
+                const pw = platform.width / 2;
+                const ph = platform.height / 2;
+                const pd = platform.depth / 2;
+
+                if (player.position.x > px - pw && player.position.x < px + pw &&
+                    player.position.z > pz - pd && player.position.z < pz + pd) {
+                    
+                    const topY = py + ph;
+                    if (player.position.y - 0.9 <= topY && player.position.y - 0.9 > topY - 1) {
+                        player.position.y = topY + 0.9;
+                        playerState.velocity.y = 0;
+                        playerState.isOnGround = true;
+                        playerState.isClimbing = true;
+                    }
+                }
+            }
+
+            // UPGRADES SAMMELN
+            scene.traverse((obj) => {
+                if (obj.userData.type && obj.userData.active) {
+                    const dist = player.position.distanceTo(obj.position);
+                    if (dist < 1.5) {
+                        if (obj.userData.type === 'health') {
+                            playerState.health = Math.min(100, playerState.health + 25);
+                        }
+                        scene.remove(obj);
+                        obj.userData.active = false;
+                    }
+                    obj.rotation.x += 0.02;
+                    obj.rotation.y += 0.03;
+                }
+            });
+
+            // KAMERA FOLGEN
+            camera.position.copy(player.position);
+            camera.position.y += 0.6;
+
+            // MAXHÖHE VERFOLGEN
+            playerState.maxHeight = Math.max(playerState.maxHeight, player.position.y);
+
+            // GAME OVER - ZU TIEF GEFALLEN
+            if (player.position.y < -10) {
+                document.getElementById('gameOver').style.display = 'block';
+                document.getElementById('finalHeight').textContent = Math.floor(playerState.maxHeight);
+            }
+
+            // UI UPDATE
+            document.getElementById('height').textContent = Math.max(0, Math.floor(playerState.maxHeight - 1));
+            document.getElementById('speed').textContent = Math.abs(playerState.velocity.y).toFixed(1);
+
+            renderer.render(scene, camera);
+        }
+
+        // RESPONSIVE
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+    </script>
+</body>
+</html>

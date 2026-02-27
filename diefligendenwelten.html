@@ -1,954 +1,1308 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<title>Die Fliegenden Welten</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:#000; overflow:hidden; font-family:'Segoe UI',sans-serif; }
-canvas { display:block; }
-
-#ui { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:10; }
-
-#hud-top {
-  position:absolute; top:20px; left:50%; transform:translateX(-50%);
-  display:flex; gap:20px; align-items:center;
-}
-#game-title { color:#a8d8ff; font-size:20px; font-weight:200; letter-spacing:6px; text-shadow:0 0 20px #4af; }
-#crystal-count { background:rgba(0,0,0,0.6); border:1px solid #4af; color:#4af; padding:8px 20px; border-radius:20px; font-size:18px; letter-spacing:2px; }
-
-#crosshair { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:22px; height:22px; }
-#crosshair::before,#crosshair::after { content:''; position:absolute; background:rgba(255,255,255,0.85); border-radius:2px; }
-#crosshair::before { width:2px; height:100%; left:50%; transform:translateX(-50%); }
-#crosshair::after { width:100%; height:2px; top:50%; transform:translateY(-50%); }
-
-#interact-hint {
-  position:absolute; bottom:130px; left:50%; transform:translateX(-50%);
-  background:rgba(0,0,0,0.75); border:1px solid #4af; color:#fff;
-  padding:10px 28px; border-radius:8px; font-size:16px; letter-spacing:1px;
-  opacity:0; transition:opacity 0.3s;
-}
-#interact-hint.show { opacity:1; }
-
-
-
-#controls { position:absolute; bottom:20px; left:20px; color:rgba(255,255,255,0.45); font-size:12px; line-height:2; }
-
-#message {
-  position:absolute; top:40%; left:50%; transform:translate(-50%,-50%);
-  background:rgba(0,0,20,0.92); border:2px solid #4af; color:#a8d8ff;
-  padding:24px 48px; border-radius:12px; font-size:20px; text-align:center;
-  letter-spacing:2px; opacity:0; transition:opacity 0.5s; text-shadow:0 0 10px #4af;
-}
-#message.show { opacity:1; }
-
-#start-screen {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:radial-gradient(ellipse at center, #000818 0%, #000008 100%);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  z-index:100;
-}
-#start-screen h1 { font-size:50px; font-weight:100; letter-spacing:14px; color:#a8d8ff; text-shadow:0 0 40px #4af,0 0 80px #26f; margin-bottom:16px; }
-#start-screen p { font-size:16px; color:rgba(200,220,255,0.6); letter-spacing:3px; margin-bottom:48px; }
-#start-btn { background:transparent; border:2px solid #4af; color:#4af; padding:15px 50px; font-size:17px; letter-spacing:5px; cursor:pointer; transition:all 0.3s; border-radius:4px; text-transform:uppercase; }
-#start-btn:hover { background:rgba(68,170,255,0.15); box-shadow:0 0 30px #4af; }
-
-#shop-screen {
-  position:fixed; top:0; left:0; width:100%; height:100%;
-  background:rgba(0,0,10,0.88);
-  display:none; flex-direction:column; align-items:center; justify-content:center;
-  z-index:50; pointer-events:all;
-}
-#shop-screen h2 { font-size:32px; font-weight:100; letter-spacing:10px; color:#ffd700; text-shadow:0 0 30px #fa0; margin-bottom:12px; }
-#shop-screen p { color:rgba(255,220,150,0.7); font-size:15px; letter-spacing:2px; margin-bottom:36px; }
-.shop-item { background:rgba(0,0,20,0.9); border:2px solid #fa0; border-radius:10px; padding:20px 40px; margin:10px; cursor:pointer; transition:all 0.3s; text-align:center; }
-.shop-item:hover { background:rgba(255,160,0,0.15); box-shadow:0 0 24px #fa0; }
-.shop-item h3 { color:#ffd700; font-size:20px; letter-spacing:3px; margin-bottom:6px; }
-.shop-item .cost { color:#4af; font-size:14px; letter-spacing:2px; }
-.shop-item.disabled { opacity:0.4; cursor:not-allowed; border-color:#555; }
-.shop-item.disabled:hover { background:none; box-shadow:none; }
-#shop-close { margin-top:24px; background:transparent; border:1px solid rgba(255,255,255,0.3); color:rgba(255,255,255,0.5); padding:10px 30px; border-radius:6px; cursor:pointer; font-size:14px; letter-spacing:3px; }
-#shop-close:hover { border-color:#fff; color:#fff; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Der verlorene Kristall - 3D Abenteuer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: #000;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            height: 100vh;
+        }
+        #ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        #hud {
+            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+            padding: 20px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        #info {
+            flex: 1;
+        }
+        #level {
+            font-size: 18px;
+            font-weight: bold;
+            color: #4fc3f7;
+            margin-bottom: 5px;
+        }
+        #objective {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        #inventory {
+            background: rgba(0,0,0,0.6);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+        }
+        #inventory h3 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #4fc3f7;
+        }
+        .item {
+            background: rgba(79, 195, 247, 0.2);
+            padding: 5px 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        #message {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            max-width: 80%;
+            text-align: center;
+            pointer-events: none;
+        }
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .key {
+            display: inline-block;
+            background: rgba(79, 195, 247, 0.3);
+            padding: 3px 8px;
+            border-radius: 3px;
+            margin: 0 2px;
+            font-weight: bold;
+        }
+        
+        /* Touch Controls */
+        #touchControls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 50;
+            display: none;
+        }
+        #joystick {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 120px;
+            height: 120px;
+            pointer-events: all;
+        }
+        #joystickBase {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            position: absolute;
+        }
+        #joystickStick {
+            width: 50px;
+            height: 50px;
+            background: rgba(79, 195, 247, 0.8);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.1s;
+        }
+        .touchButton {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: rgba(79, 195, 247, 0.6);
+            border: 3px solid rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            pointer-events: all;
+            user-select: none;
+        }
+        .touchButton:active {
+            background: rgba(79, 195, 247, 0.9);
+            transform: scale(0.95);
+        }
+        #jumpButton {
+            bottom: 30px;
+            right: 30px;
+        }
+        #interactButton {
+            bottom: 120px;
+            right: 30px;
+        }
+        #lookPad {
+            position: absolute;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            pointer-events: all;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            #controls {
+                display: none;
+            }
+        }
+        /* Touch controls always visible for testing */
+        #touchControls {
+            display: block !important;
+        }
+        #startScreen, #endScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            z-index: 1000;
+        }
+        #endScreen {
+            display: none;
+        }
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .subtitle {
+            font-size: 20px;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+        button {
+            background: #4fc3f7;
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            pointer-events: all;
+            box-shadow: 0 4px 15px rgba(79, 195, 247, 0.4);
+        }
+        button:hover {
+            background: #29b6f6;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 195, 247, 0.6);
+        }
+        #timer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .story {
+            max-width: 600px;
+            text-align: center;
+            margin: 20px;
+            line-height: 1.6;
+        }
+    </style>
 </head>
 <body>
-
-<div id="start-screen">
-  <h1>DIE FLIEGENDEN WELTEN</h1>
-  <p>Löse Rätsel · Sammle Kristalle · Erkunde alle Inseln</p>
-  <button id="start-btn">Spiel Starten</button>
-</div>
-
-<div id="shop-screen">
-  <h2>✦ SHOP ✦</h2>
-  <p>Gib deine Kristalle aus</p>
-  <div class="shop-item" id="shop-color" onclick="buyColor()">
-    <h3>🌈 COLOR WORLD</h3>
-    <div class="cost">💎 10 Kristalle</div>
-  </div>
-  <button id="shop-close" onclick="closeShop()">SCHLIESSEN</button>
-</div>
-
-<canvas id="canvas"></canvas>
-
-<div id="ui">
-  <div id="hud-top">
-    <div id="game-title">DIE FLIEGENDEN WELTEN</div>
-    <div id="crystal-count">💎 <span id="c-count">0</span></div>
-  </div>
-  <div id="crosshair"></div>
-  <div id="interact-hint">[ E ] Interagieren</div>
-  <div id="controls">
-    WASD — Bewegen &nbsp;|&nbsp; Maus — Umsehen<br>
-    Leertaste — Springen &nbsp;|&nbsp; E — Interagieren
-  </div>
-  <div id="message"></div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-// ─────────────────────────────────────────
-// RENDERER
-// ─────────────────────────────────────────
-const canvas = document.getElementById('canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true });
-renderer.setSize(innerWidth, innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.setClearColor(0x020812);
-
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x020818, 0.006);
-
-const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 2000);
-
-// ─────────────────────────────────────────
-// LIGHTING
-// ─────────────────────────────────────────
-scene.add(new THREE.AmbientLight(0x102040, 1.2));
-
-const sun = new THREE.DirectionalLight(0xffe0b0, 1.8);
-sun.position.set(150, 300, 100);
-sun.castShadow = true;
-sun.shadow.camera.far = 1200;
-sun.shadow.camera.left = sun.shadow.camera.bottom = -300;
-sun.shadow.camera.right = sun.shadow.camera.top = 300;
-sun.shadow.mapSize.set(2048, 2048);
-scene.add(sun);
-
-// ─────────────────────────────────────────
-// SKY + STARS
-// ─────────────────────────────────────────
-const skyMesh = new THREE.Mesh(
-  new THREE.SphereGeometry(1400,32,32),
-  new THREE.MeshBasicMaterial({ color:0x010612, side:THREE.BackSide })
-);
-scene.add(skyMesh);
-
-const starGeo = new THREE.BufferGeometry();
-const starPos = new Float32Array(5000*3);
-for(let i=0;i<starPos.length;i++) starPos[i]=(Math.random()-.5)*2600;
-starGeo.setAttribute('position', new THREE.BufferAttribute(starPos,3));
-scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({color:0xffffff,size:1.2,sizeAttenuation:true})));
-
-// ─────────────────────────────────────────
-// MATERIALS
-// ─────────────────────────────────────────
-const mats = {
-  grass:  (hue)=>new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(hue,0.5,0.28)}),
-  rock:   ()=>new THREE.MeshLambertMaterial({color:0x554433}),
-  wood:   ()=>new THREE.MeshLambertMaterial({color:0x5a3800}),
-  leaf:   ()=>new THREE.MeshLambertMaterial({color:0x1a5a1a}),
-  bridge: ()=>new THREE.MeshLambertMaterial({color:0x7a5a30}),
-  rope:   ()=>new THREE.MeshBasicMaterial({color:0x886633}),
-  crystal:  new THREE.MeshPhongMaterial({color:0x00ccff,emissive:0x0055aa,emissiveIntensity:0.6,transparent:true,opacity:0.88,shininess:220}),
-};
-
-// ─────────────────────────────────────────
-// ISLAND DATA
-// ─────────────────────────────────────────
-let _seed = Math.floor(Math.random()*99999);
-function rng() { _seed = (_seed * 1664525 + 1013904223) & 0xffffffff; return ((_seed >>> 0) / 0xffffffff); }
-function rngRange(a,b){ return a + rng()*(b-a); }
-function rngInt(a,b){ return Math.floor(rngRange(a,b+1)); }
-
-const ISLANDS = [
-  { id:0,  x:   0, y:  0, z:   0, r:20 },
-  { id:1,  x:  90, y:  8, z:   0, r:14 },
-  { id:2,  x: -90, y: 12, z:   0, r:14 },
-  { id:3,  x:   0, y: 16, z:  90, r:14 },
-  { id:4,  x:   0, y:  4, z: -90, r:14 },
-  { id:5,  x: 180, y: 20, z:   0, r:12 },
-  { id:6,  x:-180, y:  6, z:  60, r:12 },
-  { id:7,  x:  80, y: 30, z: 130, r:12 },
-  { id:8,  x: -80, y: -8, z:-130, r:12 },
-  { id:9,  x: 260, y: 14, z:  80, r:11 },
-  { id:10, x:-240, y: 22, z: -80, r:11 },
-  { id:11, x: 340, y:  5, z:-100, r:12 },
-  { id:12, x:-300, y: 28, z: 180, r:11 },
-  { id:13, x: 150, y: 38, z: 260, r:13 },
-  { id:14, x:-160, y:-12, z:-260, r:11 },
-];
-
-const BRIDGES = [
-  [0,1],[0,2],[0,3],[0,4],
-  [1,5],[2,6],[3,7],[4,8],
-  [5,9],[6,10],[9,11],[10,12],[7,13],[8,14],
-];
-
-const islandMeshes = [];
-const interactables = [];
-const allCrystals = [];
-const puzzles = [];
-
-// ─────────────────────────────────────────
-// BUILD ISLANDS
-// ─────────────────────────────────────────
-function buildIsland(cfg) {
-  const g = new THREE.Group();
-  g.position.set(cfg.x, cfg.y, cfg.z);
-  g.userData = { ...cfg, originalY: cfg.y };
-
-  const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(cfg.r*0.65, cfg.r, cfg.r*0.35, 14),
-    mats.grass(0.25 + (cfg.id%7)*0.035)
-  );
-  body.receiveShadow = body.castShadow = true;
-  g.add(body);
-
-  const rock = new THREE.Mesh(
-    new THREE.ConeGeometry(cfg.r*0.72, cfg.r*0.85, 11),
-    mats.rock()
-  );
-  rock.position.y = -cfg.r*0.6;
-  rock.castShadow = true;
-  g.add(rock);
-
-  for(let i=0;i<6+cfg.id%4;i++){
-    const angle = i/6*Math.PI*2 + cfg.id;
-    const rad = rng()*cfg.r*0.45;
-    const isRock = rng()>0.6;
-    const bm = new THREE.Mesh(
-      isRock ? new THREE.DodecahedronGeometry(0.6+rng()*1.5,0)
-             : new THREE.SphereGeometry(0.4+rng(),7,7),
-      isRock ? mats.rock() : mats.grass(0.3+rng()*0.05)
-    );
-    bm.position.set(Math.cos(angle)*rad, cfg.r*0.18+rng()*1.5, Math.sin(angle)*rad);
-    bm.castShadow = true;
-    g.add(bm);
-  }
-
-  const treeCount = 2 + cfg.id%4;
-  for(let t=0;t<treeCount;t++){
-    const angle = t/treeCount*Math.PI*2 + cfg.id*0.7;
-    const rad = 2 + rng()*cfg.r*0.4;
-    addTree(g, Math.cos(angle)*rad, Math.sin(angle)*rad);
-  }
-
-  g.userData.topY = cfg.y + cfg.r*0.19;
-  scene.add(g);
-  islandMeshes.push(g);
-  return g;
-}
-
-function addTree(parent, lx, lz) {
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22,0.32,2.8,6), mats.wood());
-  trunk.position.set(lx, 1.4, lz);
-  trunk.castShadow = true;
-  parent.add(trunk);
-  for(let i=0;i<3;i++){
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(1.6-i*0.3,1.6,8), mats.leaf());
-    cone.position.set(lx, 3.0+i*1.1, lz);
-    cone.castShadow = true;
-    parent.add(cone);
-  }
-}
-
-// ─────────────────────────────────────────
-// BUILD BRIDGES
-// ─────────────────────────────────────────
-const bridgeSegments = [];
-
-function buildBridge(idA, idB) {
-  const a = ISLANDS[idA], b = ISLANDS[idB];
-  const posA = new THREE.Vector3(a.x, a.y + a.r*0.19, a.z);
-  const posB = new THREE.Vector3(b.x, b.y + b.r*0.19, b.z);
-
-  const dir  = posB.clone().sub(posA);
-  const length = dir.length();
-  const angle  = Math.atan2(dir.x, dir.z);
-  const BRIDGE_W = 3.0;
-  const SEGS = Math.max(12, Math.floor(length / 4));
-
-  for(let i = 0; i < SEGS; i++){
-    const t0 = i / SEGS;
-    const t1 = (i+1) / SEGS;
-    const tm = (t0+t1)*0.5;
-
-    const sag = (cfg) => Math.sin(cfg * Math.PI) * length * 0.05;
-
-    const p0x = posA.x + dir.x*t0,  p0z = posA.z + dir.z*t0;
-    const p0y = posA.y + (posB.y-posA.y)*t0 - sag(t0);
-    const p1x = posA.x + dir.x*t1,  p1z = posA.z + dir.z*t1;
-    const p1y = posA.y + (posB.y-posA.y)*t1 - sag(t1);
-    const pmx = posA.x + dir.x*tm,  pmz = posA.z + dir.z*tm;
-    const pmy = posA.y + (posB.y-posA.y)*tm - sag(tm);
-
-    const segLen = Math.sqrt((p1x-p0x)**2 + (p1y-p0y)**2 + (p1z-p0z)**2) + 0.02;
-
-    const dx = p1x-p0x, dy = p1y-p0y, dz = p1z-p0z;
-    const horizLen = Math.sqrt(dx*dx+dz*dz);
-    const pitch = -Math.atan2(dy, horizLen);
-
-    const seg = new THREE.Mesh(
-      new THREE.BoxGeometry(BRIDGE_W, 0.22, segLen),
-      mats.bridge()
-    );
-    seg.position.set(pmx, pmy, pmz);
-    seg.rotation.order = 'YXZ';
-    seg.rotation.y = angle;
-    seg.rotation.x = pitch;
-    seg.castShadow = true;
-    seg.receiveShadow = true;
-    scene.add(seg);
-
-    bridgeSegments.push({
-      mesh: seg,
-      cx: pmx, cy: pmy, cz: pmz,
-      angle, pitch,
-      halfLen: segLen*0.5,
-      halfW: BRIDGE_W*0.5
-    });
-
-    if(i % 4 === 0){
-      for(let s=-1;s<=1;s+=2){
-        const offX = Math.cos(angle + Math.PI/2) * s * (BRIDGE_W*0.5 - 0.15);
-        const offZ = Math.sin(angle + Math.PI/2) * s * (BRIDGE_W*0.5 - 0.15);
-        const post = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.08, 0.08, 1.5, 5),
-          new THREE.MeshBasicMaterial({color:0x886633})
-        );
-        post.position.set(pmx + offX, pmy + 0.75, pmz + offZ);
-        scene.add(post);
-      }
-    }
-  }
-
-  for(let s=-1;s<=1;s+=2){
-    const mid = posA.clone().add(posB).multiplyScalar(0.5);
-    const midSag = posA.y + (posB.y-posA.y)*0.5 - length*0.05*1.0;
-    const offX = Math.cos(angle + Math.PI/2) * s * (BRIDGE_W*0.5 - 0.15);
-    const offZ = Math.sin(angle + Math.PI/2) * s * (BRIDGE_W*0.5 - 0.15);
-
-    for(let half=0;half<2;half++){
-      const hA = half===0 ? posA : mid.clone().setY(midSag+0.9);
-      const hB = half===0 ? mid.clone().setY(midSag+0.9) : posB;
-      const hDir = hB.clone().sub(hA);
-      const hLen = hDir.length();
-      const hAngle = Math.atan2(hDir.x, hDir.z);
-      const hDy = hDir.y;
-      const hHoriz = Math.sqrt(hDir.x**2+hDir.z**2);
-      const hPitch = -Math.atan2(hDy, hHoriz);
-      const hMid = hA.clone().add(hB).multiplyScalar(0.5);
-
-      const rope = new THREE.Mesh(
-        new THREE.BoxGeometry(0.08, 0.08, hLen),
-        new THREE.MeshBasicMaterial({color:0x886633})
-      );
-      rope.position.set(hMid.x+offX, hMid.y+0.9, hMid.z+offZ);
-      rope.rotation.order='YXZ';
-      rope.rotation.y = hAngle;
-      rope.rotation.x = hPitch;
-      scene.add(rope);
-    }
-  }
-}
-
-// ─────────────────────────────────────────
-// PUZZLE OBJECTS — each has its own material instance
-// ─────────────────────────────────────────
-function addLever(islandGroup, lx, lz) {
-  const g = new THREE.Group();
-  g.position.set(lx, islandGroup.userData.r*0.19, lz);
-
-  const base = new THREE.Mesh(new THREE.BoxGeometry(0.7,0.35,0.7), new THREE.MeshLambertMaterial({color:0x888888}));
-  g.add(base);
-
-  // Each lever gets its OWN material so color changes don't affect others
-  const stickMat = new THREE.MeshPhongMaterial({color:0x888888, emissive:0x000000});
-  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.1,1.3,6), stickMat);
-  stick.position.y = 0.85;
-  stick.rotation.z = 0.65;
-  g.add(stick);
-
-  islandGroup.add(g);
-  const localPos = new THREE.Vector3(lx, islandGroup.userData.r*0.19, lz);
-  const obj = {
-    type:'lever', group:g, stick, stickMat, islandGroup, state:false,
-    worldPos:()=>{
-      const wp = new THREE.Vector3();
-      islandGroup.localToWorld(wp.copy(localPos));
-      return wp;
-    }
-  };
-  interactables.push(obj);
-  return obj;
-}
-
-function addButton(islandGroup, lx, lz) {
-  const g = new THREE.Group();
-  g.position.set(lx, islandGroup.userData.r*0.19, lz);
-
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.45,0.22,12), new THREE.MeshLambertMaterial({color:0x555555}));
-  g.add(base);
-
-  // Own material
-  const btnMat = new THREE.MeshPhongMaterial({color:0xff2222, emissive:0x440000});
-  const btn = new THREE.Mesh(new THREE.CylinderGeometry(0.32,0.32,0.18,12), btnMat);
-  btn.position.y = 0.2;
-  g.add(btn);
-
-  islandGroup.add(g);
-  const localPos = new THREE.Vector3(lx, islandGroup.userData.r*0.19, lz);
-  const obj = {
-    type:'button', group:g, btn, btnMat, islandGroup, state:false,
-    worldPos:()=>{
-      const wp = new THREE.Vector3();
-      islandGroup.localToWorld(wp.copy(localPos));
-      return wp;
-    }
-  };
-  interactables.push(obj);
-  return obj;
-}
-
-function addPressurePlate(islandGroup, lx, lz) {
-  const g = new THREE.Group();
-  g.position.set(lx, islandGroup.userData.r*0.19, lz);
-
-  // Own material
-  const plateMat = new THREE.MeshPhongMaterial({color:0xddaa00, emissive:0x332200});
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(1.4,0.12,1.4), plateMat);
-  g.add(plate);
-
-  islandGroup.add(g);
-  const localPos = new THREE.Vector3(lx, islandGroup.userData.r*0.19, lz);
-  const obj = {
-    type:'pressure', group:g, plate, plateMat, islandGroup, state:false,
-    worldPos:()=>{
-      const wp = new THREE.Vector3();
-      islandGroup.localToWorld(wp.copy(localPos));
-      return wp;
-    }
-  };
-  interactables.push(obj);
-  return obj;
-}
-
-function addCrystal(x, y, z, puzzleId) {
-  const g = new THREE.Group();
-  g.position.set(x, y, z);
-
-  const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.75,0), mats.crystal.clone());
-  mesh.castShadow = true;
-  g.add(mesh);
-
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(1.0,8,8), new THREE.MeshBasicMaterial({color:0x0088ff,transparent:true,opacity:0.12}));
-  g.add(glow);
-
-  const light = new THREE.PointLight(0x0099ff, 1.5, 10);
-  g.add(light);
-
-  g.userData = { isCrystal:true, collected:false, puzzleId };
-  g.visible = false;
-  scene.add(g);
-  allCrystals.push(g);
-  return g;
-}
-
-// ─────────────────────────────────────────
-// PUZZLE SYSTEM — fixed with proper state resets
-// ─────────────────────────────────────────
-class Puzzle {
-  constructor(islandId, steps) {
-    this.islandId = islandId;
-    this.steps = steps; // correct order
-    this.progress = 0;
-    this.solved = false;
-    this.reward = null;
-    this.history = [];
-    this.id = puzzles.length;
-    puzzles.push(this);
-  }
-
-  setVisual(obj, activated) {
-    if(obj.type === 'lever') {
-      obj.stick.rotation.z = activated ? -0.65 : 0.65;
-      obj.stickMat.color.setHex(activated ? 0x00ff88 : 0x888888);
-      obj.stickMat.emissive.setHex(activated ? 0x005522 : 0x000000);
-    } else if(obj.type === 'button') {
-      obj.btnMat.color.setHex(activated ? 0x00ff22 : 0xff2222);
-      obj.btnMat.emissive.setHex(activated ? 0x004400 : 0x440000);
-    } else if(obj.type === 'pressure') {
-      obj.plateMat.color.setHex(activated ? 0x00ff88 : 0xddaa00);
-      obj.plateMat.emissive.setHex(activated ? 0x004400 : 0x332200);
-    }
-  }
-
-  reset() {
-    this.progress = 0;
-    this.history = [];
-    for(const s of this.steps) {
-      s.state = false;
-      this.setVisual(s, false);
-    }
-  }
-
-  tryActivate(obj) {
-    if(this.solved) return;
-
-    // All objects toggle on/off
-    obj.state = !obj.state;
-    this.setVisual(obj, obj.state);
-
-    if(!obj.state) {
-      // Deactivated — remove last occurrence from history
-      const idx = this.history.lastIndexOf(obj);
-      if(idx !== -1) this.history.splice(idx, 1);
-      return;
-    }
-
-    // Activated — add to history
-    this.history.push(obj);
-
-    // Check if the last N activations match the required sequence
-    const n = this.steps.length;
-    if(this.history.length >= n) {
-      const last = this.history.slice(-n);
-      const match = last.every((o, i) => o === this.steps[i]);
-      if(match) {
-        this.solved = true;
-        this.reward.visible = true;
-        this.reward.children[2].intensity = 3;
-        showMessage('💎');
-      }
-    }
-  }
-}
-
-// ─────────────────────────────────────────
-// BUILD WORLD
-// ─────────────────────────────────────────
-ISLANDS.forEach(cfg => buildIsland(cfg));
-BRIDGES.forEach(([a,b]) => buildBridge(a,b));
-
-function generateRandomPuzzle(island, r) {
-  const usedPositions = [];
-
-  function randPos() {
-    let tries = 0;
-    while(tries++ < 20) {
-      const angle = rng() * Math.PI * 2;
-      const dist  = r * (0.15 + rng() * 0.32);
-      const lx = Math.cos(angle) * dist;
-      const lz = Math.sin(angle) * dist;
-      if(!usedPositions.some(p => Math.hypot(p[0]-lx, p[1]-lz) < 3.5)) {
-        usedPositions.push([lx,lz]);
-        return [lx,lz];
-      }
-    }
-    const lx = rngRange(-r*0.3, r*0.3), lz = rngRange(-r*0.3, r*0.3);
-    usedPositions.push([lx,lz]);
-    return [lx,lz];
-  }
-
-  // Determine count and positions first
-  const count = rngInt(2, 4);
-  const positions = [];
-  for(let i=0; i<count; i++) positions.push(randPos());
-
-  // Determine random order (the correct puzzle sequence)
-  const orderIndices = Array.from({length:count}, (_,i)=>i);
-  for(let i=orderIndices.length-1;i>0;i--){
-    const j = rngInt(0,i);
-    [orderIndices[i],orderIndices[j]] = [orderIndices[j],orderIndices[i]];
-  }
-
-  // Create objects without any labels
-  const objects = new Array(count);
-  for(let i=0; i<count; i++){
-    const [lx,lz] = positions[i];
-    const t = rngInt(0,2);
-    if(t===0) objects[i] = addLever(island, lx, lz);
-    else if(t===1) objects[i] = addButton(island, lx, lz);
-    else objects[i] = addPressurePlate(island, lx, lz);
-  }
-
-  // Build steps array in correct activation order
-  const steps = orderIndices.map(i => objects[i]);
-  return steps;
-}
-
-function setupPuzzles() {
-  ISLANDS.forEach((cfg, i) => {
-    if(i === 0) return;
-    const island = islandMeshes[i];
-    const r = cfg.r;
-
-    const steps = generateRandomPuzzle(island, r);
-    const crystal = addCrystal(cfg.x, cfg.y + r*0.19 + 2.5, cfg.z, i);
-    const puz = new Puzzle(i, steps);
-    puz.reward = crystal;
-    steps.forEach(s => s.puzzle = puz);
-  });
-}
-
-setupPuzzles();
-
-// ─────────────────────────────────────────
-// SHOP NPC on hub island
-// ─────────────────────────────────────────
-let colorWorldActive = false;
-const allIslandMeshRefs = []; // store body meshes for recoloring
-const allBridgeMeshRefs = []; // store bridge segment meshes
-
-// Collect island body meshes (child 0 = body cylinder)
-islandMeshes.forEach(isl => allIslandMeshRefs.push(isl.children[0]));
-// Collect bridge segment meshes
-bridgeSegments.forEach(seg => allBridgeMeshRefs.push(seg.mesh));
-
-// NPC — glowing chest on hub island
-const hubIsland = islandMeshes[0];
-const npcGroup = new THREE.Group();
-npcGroup.position.set(4, ISLANDS[0].r*0.19, 0);
-
-const chestBase = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2, 0.8, 0.9),
-  new THREE.MeshPhongMaterial({color:0xaa7700, emissive:0x332200})
-);
-npcGroup.add(chestBase);
-
-const chestLid = new THREE.Mesh(
-  new THREE.BoxGeometry(1.2, 0.4, 0.9),
-  new THREE.MeshPhongMaterial({color:0xcc9900, emissive:0x443300})
-);
-chestLid.position.y = 0.6;
-npcGroup.add(chestLid);
-
-const chestGlow = new THREE.Mesh(
-  new THREE.SphereGeometry(1.0, 8, 8),
-  new THREE.MeshBasicMaterial({color:0xffaa00, transparent:true, opacity:0.10})
-);
-npcGroup.add(chestGlow);
-
-const chestLight = new THREE.PointLight(0xffaa00, 1.2, 8);
-npcGroup.add(chestLight);
-
-hubIsland.add(npcGroup);
-
-const shopNPC = {
-  type: 'shop',
-  worldPos: () => {
-    const wp = new THREE.Vector3();
-    hubIsland.localToWorld(wp.copy(new THREE.Vector3(4, ISLANDS[0].r*0.19, 0)));
-    return wp;
-  }
-};
-interactables.push(shopNPC);
-
-// ─────────────────────────────────────────
-// SHOP LOGIC
-// ─────────────────────────────────────────
-let shopOpen = false;
-
-function openShop() {
-  shopOpen = true;
-  document.exitPointerLock();
-  const shopEl = document.getElementById('shop-screen');
-  shopEl.style.display = 'flex';
-  // Update affordability
-  const colorBtn = document.getElementById('shop-color');
-  if(player.collected < 10 || colorWorldActive) {
-    colorBtn.classList.add('disabled');
-    colorBtn.querySelector('.cost').textContent = colorWorldActive ? '✓ Gekauft' : '💎 10 Kristalle';
-  } else {
-    colorBtn.classList.remove('disabled');
-  }
-}
-
-function closeShop() {
-  shopOpen = false;
-  document.getElementById('shop-screen').style.display = 'none';
-  canvas.requestPointerLock();
-}
-
-function buyColor() {
-  if(player.collected < 10 || colorWorldActive) return;
-  player.collected -= 10;
-  document.getElementById('c-count').textContent = player.collected;
-  colorWorldActive = true;
-  applyColorWorld();
-  closeShop();
-  showMessage('🌈 Color World freigeschaltet!');
-}
-
-function applyColorWorld() {
-  // Random color for each island body
-  allIslandMeshRefs.forEach(mesh => {
-    mesh.material = new THREE.MeshLambertMaterial({
-      color: new THREE.Color().setHSL(Math.random(), 0.7, 0.45)
-    });
-  });
-  // Random color for each bridge segment
-  allBridgeMeshRefs.forEach(mesh => {
-    mesh.material = new THREE.MeshLambertMaterial({
-      color: new THREE.Color().setHSL(Math.random(), 0.8, 0.5)
-    });
-  });
-}
-
-// ─────────────────────────────────────────
-// PLAYER
-// ─────────────────────────────────────────
-const player = {
-  pos: new THREE.Vector3(0, 6, 0),
-  vel: new THREE.Vector3(),
-  yaw: 0,
-  pitch: 0,
-  onGround: false,
-  collected: 0
-};
-
-const keys = {};
-window.addEventListener('keydown', e=>{
-  keys[e.code]=true;
-  if(e.code==='KeyE') interact();
-  if(e.code==='Space') e.preventDefault();
-});
-window.addEventListener('keyup', e=>{ keys[e.code]=false; });
-
-document.getElementById('start-btn').addEventListener('click', ()=>{
-  document.getElementById('start-screen').style.display='none';
-  canvas.requestPointerLock();
-});
-canvas.addEventListener('click', ()=>{ if(document.pointerLockElement!==canvas) canvas.requestPointerLock(); });
-window.addEventListener('mousemove', e=>{
-  if(document.pointerLockElement!==canvas) return;
-  player.yaw   -= e.movementX * 0.002;
-  player.pitch -= e.movementY * 0.002;
-  player.pitch  = Math.max(-1.3, Math.min(1.3, player.pitch));
-});
-
-// ─────────────────────────────────────────
-// INTERACTION
-// ─────────────────────────────────────────
-function interact() {
-  const RANGE = 5;
-
-  // Crystals
-  for(const c of allCrystals){
-    if(!c.visible || c.userData.collected) continue;
-    if(player.pos.distanceTo(c.position) < RANGE-1) {
-      c.userData.collected = true;
-      c.visible = false;
-      player.collected++;
-      document.getElementById('c-count').textContent = player.collected;
-      showMessage('💎 ' + player.collected);
-      return;
-    }
-  }
-
-  // Find nearest interactable
-  let nearest = null, nearDist = RANGE;
-  for(const obj of interactables){
-    const d = player.pos.distanceTo(obj.worldPos());
-    if(d < nearDist){ nearDist=d; nearest=obj; }
-  }
-  if(!nearest) return;
-
-  if(nearest.type === 'shop') {
-    openShop();
-    return;
-  }
-  if(nearest.type === 'lever') {
-    nearest.puzzle?.tryActivate(nearest);
-  }
-  else if(nearest.type === 'button') {
-    nearest.puzzle?.tryActivate(nearest);
-  }
-  else if(nearest.type === 'pressure') {
-    nearest.puzzle?.tryActivate(nearest);
-  }
-}
-
-// ─────────────────────────────────────────
-// PHYSICS
-// ─────────────────────────────────────────
-const GRAVITY = -28;
-const SPEED   = 13;
-const JUMP    = 16;
-
-function physics(dt) {
-  const moveDir = new THREE.Vector3();
-  if(keys['KeyW']) moveDir.z -= 1;
-  if(keys['KeyS']) moveDir.z += 1;
-  if(keys['KeyA']) moveDir.x -= 1;
-  if(keys['KeyD']) moveDir.x += 1;
-  if(moveDir.length() > 0) moveDir.normalize();
-
-  const cos = Math.cos(player.yaw), sin = Math.sin(player.yaw);
-  player.vel.x = (moveDir.x*cos + moveDir.z*sin) * SPEED;
-  player.vel.z = (-moveDir.x*sin + moveDir.z*cos) * SPEED;
-  player.vel.y += GRAVITY * dt;
-
-  player.pos.addScaledVector(player.vel, dt);
-
-  player.onGround = false;
-  for(const isl of islandMeshes) {
-    const d = ISLANDS[isl.userData.id];
-    const topY = isl.position.y + d.r*0.19 + 1.7;
-    const dx = player.pos.x - isl.position.x;
-    const dz = player.pos.z - isl.position.z;
-    const dist = Math.sqrt(dx*dx+dz*dz);
-    if(dist < d.r*0.82 && player.pos.y < topY+0.5 && player.pos.y > topY-4 && player.vel.y<=0){
-      player.pos.y = topY;
-      player.vel.y = 0;
-      player.onGround = true;
-      break;
-    }
-  }
-
-  if(!player.onGround && player.vel.y <= 0) {
-    for(const seg of bridgeSegments) {
-      const dx = player.pos.x - seg.cx;
-      const dz = player.pos.z - seg.cz;
-      const cosA = Math.cos(-seg.angle), sinA = Math.sin(-seg.angle);
-      const lx =  dx*cosA + dz*sinA;
-      const lz = -dx*sinA + dz*cosA;
-      if(Math.abs(lx) < seg.halfW * 0.95 && Math.abs(lz) < seg.halfLen + 0.3) {
-        const surfY = seg.cy + Math.tan(-seg.pitch) * lz + 0.11 + 1.7;
-        if(player.pos.y < surfY + 0.5 && player.pos.y > surfY - 3.5) {
-          player.pos.y = surfY;
-          player.vel.y = 0;
-          player.onGround = true;
-          break;
+    <div id="startScreen">
+        <h1>🔮 Der verlorene Kristall</h1>
+        <p class="subtitle">Ein 3D Abenteuer durch magische Welten</p>
+        <div class="story">
+            <p>Die magischen Kristalle, die das Gleichgewicht der Welten bewahren, wurden gestohlen und in verschiedenen Dimensionen versteckt. Du bist der einzige, der sie zurückholen kann.</p>
+            <p style="margin-top: 15px;">Durchquere 6 mystische Welten, löse Rätsel und sammle alle Kristalle, bevor es zu spät ist!</p>
+        </div>
+        <button onclick="startGame()">Abenteuer starten</button>
+        <button onclick="startFreeRoam()" style="margin-top: 15px; background: #9c27b0;">🌍 Freie Welt erkunden</button>
+    </div>
+
+    <div id="endScreen">
+        <h1>🎉 Glückwunsch!</h1>
+        <p class="subtitle">Du hast alle Kristalle gefunden!</p>
+        <div class="story">
+            <p id="finalTime"></p>
+            <p style="margin-top: 15px;">Das Gleichgewicht der Welten ist wiederhergestellt. Du bist ein wahrer Held!</p>
+        </div>
+        <button onclick="continueInFreeWorld()">🌍 In der freien Welt weiterspielen</button>
+        <button onclick="location.reload()" style="margin-top: 15px;">Nochmal von vorne spielen</button>
+    </div>
+
+    <div id="ui">
+        <div id="hud">
+            <div id="info">
+                <div id="level">Level 1: Der Wald der Anfänge</div>
+                <div id="objective">Finde den ersten Kristall</div>
+            </div>
+            <div id="inventory">
+                <h3>Inventar:</h3>
+                <div id="items"></div>
+            </div>
+        </div>
+        <div id="timer">Zeit: 0:00</div>
+    </div>
+
+    <div id="message"></div>
+    <div id="controls">
+        Steuerung: <span class="key">W A S D</span> Bewegen | <span class="key">LEERTASTE</span> Springen | <span class="key">E</span> Interagieren | <span class="key">MAUS</span> Umschauen |<span class="key">Esc</span> Mauszeiger anzeigen
+    </div>
+
+    <div id="touchControls">
+        <div id="joystick">
+            <div id="joystickBase"></div>
+            <div id="joystickStick"></div>
+        </div>
+        <div id="jumpButton" class="touchButton">⬆</div>
+        <div id="interactButton" class="touchButton">E</div>
+        <div id="lookPad">👆<br>Umschauen</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, player;
+        let keys = {};
+        let velocity = new THREE.Vector3();
+        let direction = new THREE.Vector3();
+        let canJump = false;
+        let mouse = { x: 0, y: 0 };
+        let yaw = 0, pitch = 0;
+        let inventory = [];
+        let currentLevel = 0;  // Start at 0 so first load doesn't clear
+        let levelData = [];
+        let interactables = [];
+        let startTime, timerInterval;
+        let gameStarted = false;
+        let crystalsFound = 0;
+        const TOTAL_CRYSTALS = 7;
+
+        // Touch controls
+        let touchMovement = { x: 0, y: 0 };
+        let touchLook = { x: 0, y: 0 };
+        let joystickActive = false;
+        let lookPadActive = false;
+        let isMobile = true; // Always enable touch controls
+
+        // Level Definitionen
+        const levels = [
+            {
+                name: "Der Wald der Anfänge",
+                objective: "Finde den grünen Kristall im magischen Wald",
+                crystalColor: 0x00ff00,
+                fogColor: 0x88cc88,
+                groundColor: 0x2d5016,
+                platformColor: 0x8b4513,
+                puzzleType: "navigation"
+            },
+            {
+                name: "Die Wüste der Zeit",
+                objective: "Löse das Rätsel der drei Säulen",
+                crystalColor: 0xffaa00,
+                fogColor: 0xffddaa,
+                groundColor: 0xc2b280,
+                platformColor: 0x8b7355,
+                puzzleType: "pillars"
+            },
+            {
+                name: "Die eisige Höhle",
+                objective: "Springe über die gefrorenen Plattformen",
+                crystalColor: 0x00ffff,
+                fogColor: 0xccffff,
+                groundColor: 0x4a5f7f,
+                platformColor: 0x87ceeb,
+                puzzleType: "jumping"
+            },
+            {
+                name: "Der Vulkan des Feuers",
+                objective: "Navigiere durch die Lava-Plattformen",
+                crystalColor: 0xff0000,
+                fogColor: 0xff6633,
+                groundColor: 0x2f1a1a,
+                platformColor: 0x8b0000,
+                puzzleType: "lava"
+            },
+            {
+                name: "Der Himmelstempel",
+                objective: "Erreiche den Kristall in der Himmelsfestung",
+                crystalColor: 0xff00ff,
+                fogColor: 0xccccff,
+                groundColor: 0x4a4a7f,
+                platformColor: 0xffd700,
+                puzzleType: "tower"
+            },
+            {
+                name: "Die Unendliche Welt",
+                objective: "Erkunde die endlose Dimension und finde den letzten Kristall",
+                crystalColor: 0xffffff,
+                fogColor: 0x6699cc,
+                groundColor: 0x228b22,
+                platformColor: 0x696969,
+                puzzleType: "freeRoam"
+            }
+        ];
+
+        function startGame() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameStarted = true;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Always show and init touch controls
+            document.getElementById('touchControls').style.display = 'block';
+            initTouchControls();
+            
+            init();
+            animate();
         }
-      }
-    }
-  }
 
-  if(keys['Space'] && player.onGround){
-    player.vel.y = JUMP;
-    player.onGround = false;
-  }
+        function startFreeRoam() {
+            document.getElementById('startScreen').style.display = 'none';
+            gameStarted = true;
+            startTime = Date.now();
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Always show and init touch controls
+            document.getElementById('touchControls').style.display = 'block';
+            initTouchControls();
+            
+            init();
+            // Load level 6 directly (free roam world)
+            loadLevel(6);
+            animate();
+        }
 
-  if(player.pos.y < -180){
-    player.pos.set(0,8,0);
-    player.vel.set(0,0,0);
-    showMessage('💀 Gefallen! Zurück zur Hub-Insel.');
-  }
-}
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById('timer').textContent = `Zeit: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
 
-// ─────────────────────────────────────────
-// INTERACT HINT + PUZZLE HINT
-// ─────────────────────────────────────────
-const hintEl = document.getElementById('interact-hint');
+        function init() {
+            scene = new THREE.Scene();
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 5, 10);
 
-function updateHint() {
-  const RANGE = 5;
-  let nearObj = null;
-  let nearCrystal = false;
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
 
-  for(const obj of interactables){
-    if(player.pos.distanceTo(obj.worldPos()) < RANGE){
-      nearObj = obj;
-      break;
-    }
-  }
+            // Add basic lights first
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
 
-  if(!nearObj) {
-    for(const c of allCrystals){
-      if(c.visible && !c.userData.collected && player.pos.distanceTo(c.position) < RANGE-1){
-        nearCrystal = true; break;
-      }
-    }
-  }
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 20, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
 
-  if(nearObj) {
-    hintEl.className = 'show';
-    if(nearObj.type==='lever') hintEl.textContent = '[ E ]  Hebel betätigen';
-    else if(nearObj.type==='button') hintEl.textContent = '[ E ]  Knopf drücken';
-    else if(nearObj.type==='pressure') hintEl.textContent = '[ E ]  Druckplatte aktivieren';
-    else if(nearObj.type==='shop') hintEl.textContent = '[ E ]  Shop öffnen';
-  } else if(nearCrystal) {
-    hintEl.className = 'show';
-    hintEl.textContent = '[ E ]  Kristall aufsammeln';
-  } else {
-    hintEl.className = '';
-  }
-}
+            // Create player
+            createPlayer();
 
-// ─────────────────────────────────────────
-// MESSAGE
-// ─────────────────────────────────────────
-let msgTimer;
-function showMessage(txt) {
-  const el = document.getElementById('message');
-  el.textContent = txt;
-  el.className = 'show';
-  clearTimeout(msgTimer);
-  msgTimer = setTimeout(()=>el.className='', 3500);
-}
+            // Load first level
+            loadLevel(1);
 
-// ─────────────────────────────────────────
-// GAME LOOP
-// ─────────────────────────────────────────
-let prev = performance.now();
+            document.addEventListener('keydown', (e) => {
+                keys[e.key.toLowerCase()] = true;
+                if (e.key.toLowerCase() === 'e') {
+                    checkInteraction();
+                }
+            });
+            document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('click', () => {
+                renderer.domElement.requestPointerLock();
+            });
 
-function loop(now) {
-  requestAnimationFrame(loop);
-  const dt = Math.min((now-prev)/1000, 0.05);
-  prev = now;
-  const t = now/1000;
+            window.addEventListener('resize', onWindowResize);
+        }
 
-  physics(dt);
+        function createPlayer() {
+            const geometry = new THREE.BoxGeometry(1, 2, 1);
+            const material = new THREE.MeshStandardMaterial({ color: 0x4fc3f7 });
+            player = new THREE.Mesh(geometry, material);
+            player.position.y = 5;
+            player.castShadow = true;
+            scene.add(player);
+        }
 
-  // Floating islands
-  for(const isl of islandMeshes){
-    isl.position.y = isl.userData.originalY + Math.sin(t*0.35 + isl.userData.id*0.9) * 1.2;
-  }
+        function loadLevel(levelNum) {
+            // Only clear on level change, not on first load
+            if (currentLevel > 0) {
+                // Clear previous level objects (but keep player, lights, camera)
+                const objectsToRemove = [];
+                scene.children.forEach(child => {
+                    if (child !== player && child.type !== 'AmbientLight' && child.type !== 'DirectionalLight') {
+                        objectsToRemove.push(child);
+                    }
+                });
+                objectsToRemove.forEach(obj => scene.remove(obj));
+            }
+            
+            interactables = [];
+            
+            const level = levels[levelNum - 1];
+            currentLevel = levelNum;
+            
+            document.getElementById('level').textContent = `Level ${levelNum}: ${level.name}`;
+            document.getElementById('objective').textContent = level.objective;
+            
+            scene.fog = new THREE.Fog(level.fogColor, 10, 100);
+            scene.background = new THREE.Color(level.fogColor);
 
-  // Animate crystals
-  for(const c of allCrystals){
-    if(!c.visible) continue;
-    c.children[0].rotation.y += dt*1.8;
-    c.children[0].position.y = Math.sin(t*2.2 + c.userData.puzzleId)*0.25;
-  }
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(200, 200);
+            const groundMaterial = new THREE.MeshStandardMaterial({ color: level.groundColor });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
 
-  // Animate shop chest glow
-  if(chestGlow) {
-    chestGlow.material.opacity = 0.08 + Math.sin(t*2.5)*0.06;
-    chestLight.intensity = 1.0 + Math.sin(t*2.5)*0.4;
-    chestLid.rotation.z = Math.sin(t*1.5)*0.08;
-  }
+            // Reset player position
+            player.position.set(0, 5, 0);
+            velocity.set(0, 0, 0);
 
-  camera.position.copy(player.pos);
-  camera.rotation.order = 'YXZ';
-  camera.rotation.y = player.yaw;
-  camera.rotation.x = player.pitch;
+            // Level-specific content
+            switch(level.puzzleType) {
+                case 'navigation':
+                    createForestLevel(level);
+                    break;
+                case 'pillars':
+                    createDesertLevel(level);
+                    break;
+                case 'jumping':
+                    createIceLevel(level);
+                    break;
+                case 'lava':
+                    createVolcanoLevel(level);
+                    break;
+                case 'tower':
+                    createTowerLevel(level);
+                    break;
+                case 'freeRoam':
+                    createFreeRoamLevel(level);
+                    break;
+            }
 
-  updateHint();
-  renderer.render(scene, camera);
-}
+            showMessage(`${level.name} - ${level.objective}`, 3000);
+        }
 
-window.addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-});
+        function createForestLevel(level) {
+            // Trees
+            for (let i = 0; i < 30; i++) {
+                const x = Math.random() * 80 - 40;
+                const z = Math.random() * 80 - 40;
+                if (Math.abs(x) < 5 && Math.abs(z) < 5) continue;
+                
+                const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 5, 8);
+                const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x4a3020 });
+                const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+                trunk.position.set(x, 2.5, z);
+                trunk.castShadow = true;
+                scene.add(trunk);
 
-requestAnimationFrame(loop);
-</script>
+                const foliageGeometry = new THREE.SphereGeometry(3, 8, 8);
+                const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228b22 });
+                const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+                foliage.position.set(x, 7, z);
+                foliage.castShadow = true;
+                scene.add(foliage);
+            }
+
+            // Path markers
+            for (let i = 0; i < 5; i++) {
+                const marker = createBox(i * 8 - 16, 1, -10 + i * 4, 1, 2, 1, 0xffaa00);
+                scene.add(marker);
+            }
+
+            // Crystal at the end
+            const crystal = createCrystal(20, 3, 5, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createDesertLevel(level) {
+            // Three pillars puzzle - climbable stairs
+            const pillarPositions = [
+                { x: -10, z: -10, height: 3, active: false },
+                { x: 0, z: -10, height: 5, active: false },
+                { x: 10, z: -10, height: 7, active: false }
+            ];
+
+            pillarPositions.forEach((pos, index) => {
+                // Create stepped platforms to climb
+                for (let step = 0; step < pos.height; step++) {
+                    const stepPlatform = createBox(pos.x, step + 0.5, pos.z, 3, 1, 3, level.platformColor);
+                    scene.add(stepPlatform);
+                }
+                
+                // Top glowing part
+                const pillar = createBox(pos.x, pos.height + 0.5, pos.z, 3, 1, 3, level.platformColor);
+                pillar.userData = { type: 'pillar', index: index, activated: false };
+                interactables.push(pillar);
+                scene.add(pillar);
+
+                // Activation platform
+                const platform = createBox(pos.x, 0.2, pos.z + 5, 2, 0.4, 2, 0xffaa00);
+                platform.userData = { type: 'activator', pillarIndex: index };
+                interactables.push(platform);
+                scene.add(platform);
+            });
+
+            // Crystal appears after all pillars activated - lower position
+            const crystal = createCrystal(0, 9, -10, level.crystalColor);
+            crystal.visible = false;
+            crystal.userData = { type: 'hiddenCrystal' };
+            scene.add(crystal);
+        }
+
+        function createIceLevel(level) {
+            // Jumping platforms
+            const platforms = [
+                { x: 0, y: 1, z: 0, size: 5 },
+                { x: 8, y: 2, z: -5, size: 3 },
+                { x: 15, y: 3, z: -8, size: 3 },
+                { x: 20, y: 5, z: -3, size: 3 },
+                { x: 25, y: 7, z: -10, size: 4 }
+            ];
+
+            platforms.forEach(p => {
+                const platform = createBox(p.x, p.y, p.z, p.size, 1, p.size, level.platformColor);
+                scene.add(platform);
+            });
+
+            const crystal = createCrystal(25, 10, -10, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createVolcanoLevel(level) {
+            // Lava (danger zone)
+            const lavaGeometry = new THREE.PlaneGeometry(100, 100);
+            const lavaMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0xff4500,
+                emissive: 0xff2200,
+                emissiveIntensity: 0.5
+            });
+            const lava = new THREE.Mesh(lavaGeometry, lavaMaterial);
+            lava.rotation.x = -Math.PI / 2;
+            lava.position.y = -2;
+            scene.add(lava);
+
+            // Safe platforms above lava
+            const safePlatforms = [
+                { x: 0, y: 2, z: 0 },
+                { x: 5, y: 3, z: -5 },
+                { x: 10, y: 2, z: -10 },
+                { x: 15, y: 4, z: -8 },
+                { x: 22, y: 6, z: -12 },
+                { x: 30, y: 8, z: -10 }
+            ];
+
+            safePlatforms.forEach(p => {
+                const platform = createBox(p.x, p.y, p.z, 4, 1, 4, level.platformColor);
+                scene.add(platform);
+            });
+
+            const crystal = createCrystal(30, 11, -10, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createTowerLevel(level) {
+            // Spiral staircase to the sky
+            for (let i = 0; i < 21; i++) {
+                const angle = (i * Math.PI) / 4;
+                const radius = 10;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = i * 2 + 1;
+
+                const step = createBox(x, y, z, 4, 1, 4, level.platformColor);
+                scene.add(step);
+            }
+
+            // Crystal on the last step
+            const angle = (20 * Math.PI) / 4;
+            const radius = 10;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = 20 * 2 + 1;
+
+            const crystal = createCrystal(x, y + 3, z, level.crystalColor);
+            scene.add(crystal);
+        }
+
+        function createFreeRoamLevel(level) {
+            // Infinite procedurally generated world
+            // We'll generate chunks around the player as they move
+            
+            // Initial spawn area with some structures
+            createInitialSpawnArea(level);
+            
+            // Start the infinite world generation
+            window.generatedChunks = new Set();
+            window.chunkSize = 40;
+            window.renderDistance = 3; // How many chunks away to render
+        }
+
+        function createInitialSpawnArea(level) {
+            // Starting platform
+            const spawn = createBox(0, 1, 0, 20, 2, 20, 0x32cd32);
+            scene.add(spawn);
+            
+            // Welcome structure - a tower to climb with crystal on top
+            for (let i = 0; i < 11; i++) {
+                const step = createBox(0, i * 2 + 3, 15, 4, 1, 4, 0xffd700);
+                scene.add(step);
+            }
+            
+            // First crystal on top of the tower
+            const crystal1 = createCrystal(0, 26, 15, level.crystalColor);
+            scene.add(crystal1);
+            
+            // Second crystal on a floating island
+            const floatingIsland = createBox(-40, 15, -40, 12, 3, 12, 0xff1493);
+            scene.add(floatingIsland);
+            
+            // Path to the floating island
+            const platforms = [
+                { x: -8, y: 3, z: -8 },
+                { x: -15, y: 5, z: -15 },
+                { x: -22, y: 8, z: -22 },
+                { x: -30, y: 11, z: -30 },
+                { x: -36, y: 13, z: -36 }
+            ];
+            
+            platforms.forEach(p => {
+                const platform = createBox(p.x, p.y, p.z, 4, 1, 4, 0x9370db);
+                scene.add(platform);
+            });
+            
+            const crystal2 = createCrystal(-40, 19, -40, 0x00ffff);
+            scene.add(crystal2);
+            
+            // Some initial guidance platforms
+            for (let i = 1; i < 8; i++) {
+                const platform = createBox(i * 6, 1, -10, 4, 1, 4, 0x4fc3f7);
+                scene.add(platform);
+            }
+        }
+
+        function getChunkKey(chunkX, chunkZ) {
+            return `${chunkX},${chunkZ}`;
+        }
+
+        function generateChunk(chunkX, chunkZ, level) {
+            const chunkKey = getChunkKey(chunkX, chunkZ);
+            if (window.generatedChunks.has(chunkKey)) return;
+            
+            window.generatedChunks.add(chunkKey);
+            
+            const offsetX = chunkX * window.chunkSize;
+            const offsetZ = chunkZ * window.chunkSize;
+            
+            // Seed for this chunk (for consistent generation)
+            const seed = chunkX * 73856093 ^ chunkZ * 19349663;
+            
+            function seededRandom(offset = 0) {
+                const x = Math.sin(seed + offset) * 10000;
+                return x - Math.floor(x);
+            }
+            
+            // Generate different types of structures based on chunk position
+            const structureType = Math.floor(seededRandom(0) * 10);
+            
+            switch(structureType) {
+                case 0: // Forest
+                    for (let i = 0; i < 15; i++) {
+                        const x = offsetX + seededRandom(i * 2) * window.chunkSize;
+                        const z = offsetZ + seededRandom(i * 2 + 1) * window.chunkSize;
+                        
+                        const trunk = createBox(x, 2.5, z, 1, 5, 1, 0x4a3020);
+                        trunk.userData.chunk = chunkKey;
+                        scene.add(trunk);
+                        
+                        const leaves = createBox(x, 6, z, 4, 3, 4, 0x228b22);
+                        leaves.userData.chunk = chunkKey;
+                        scene.add(leaves);
+                    }
+                    break;
+                    
+                case 1: // Tower
+                    const towerX = offsetX + window.chunkSize / 2;
+                    const towerZ = offsetZ + window.chunkSize / 2;
+                    const height = Math.floor(seededRandom(10) * 20) + 10;
+                    
+                    for (let h = 0; h < height; h++) {
+                        const tower = createBox(towerX, h + 0.5, towerZ, 4, 1, 4, 0x696969);
+                        tower.userData.chunk = chunkKey;
+                        scene.add(tower);
+                    }
+                    break;
+                    
+                case 2: // Pyramid
+                    const pyramidX = offsetX + window.chunkSize / 2;
+                    const pyramidZ = offsetZ + window.chunkSize / 2;
+                    const pyramidHeight = Math.floor(seededRandom(11) * 8) + 5;
+                    
+                    for (let i = 0; i < pyramidHeight; i++) {
+                        const size = (pyramidHeight - i) * 2;
+                        const pyramid = createBox(pyramidX, i + 0.5, pyramidZ, size, 1, size, 0xc2b280);
+                        pyramid.userData.chunk = chunkKey;
+                        scene.add(pyramid);
+                    }
+                    break;
+                    
+                case 3: // Platforms in circle
+                    const centerX = offsetX + window.chunkSize / 2;
+                    const centerZ = offsetZ + window.chunkSize / 2;
+                    const radius = 15;
+                    
+                    for (let i = 0; i < 12; i++) {
+                        const angle = (i / 12) * Math.PI * 2;
+                        const x = centerX + Math.cos(angle) * radius;
+                        const z = centerZ + Math.sin(angle) * radius;
+                        const y = Math.sin(i * 0.5 + seededRandom(12)) * 3 + 5;
+                        
+                        const platform = createBox(x, y, z, 3, 0.5, 3, 0x4fc3f7);
+                        platform.userData.chunk = chunkKey;
+                        scene.add(platform);
+                    }
+                    break;
+                    
+                case 4: // Bridge
+                    const bridgeStartX = offsetX + 5;
+                    const bridgeZ = offsetZ + window.chunkSize / 2;
+                    const bridgeLength = Math.floor(seededRandom(13) * 10) + 8;
+                    
+                    for (let i = 0; i < bridgeLength; i++) {
+                        const bridge = createBox(bridgeStartX + i * 2, 3, bridgeZ, 2, 0.5, 6, 0x8b4513);
+                        bridge.userData.chunk = chunkKey;
+                        scene.add(bridge);
+                    }
+                    break;
+                    
+                case 5: // Floating islands
+                    for (let i = 0; i < 4; i++) {
+                        const x = offsetX + seededRandom(i * 3) * window.chunkSize;
+                        const z = offsetZ + seededRandom(i * 3 + 1) * window.chunkSize;
+                        const y = seededRandom(i * 3 + 2) * 10 + 10;
+                        const size = Math.floor(seededRandom(i * 3 + 3) * 5) + 5;
+                        
+                        const island = createBox(x, y, z, size, 2, size, 0x32cd32);
+                        island.userData.chunk = chunkKey;
+                        scene.add(island);
+                    }
+                    break;
+                    
+                case 6: // Stone circle
+                    const circleX = offsetX + window.chunkSize / 2;
+                    const circleZ = offsetZ + window.chunkSize / 2;
+                    const circleRadius = 12;
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const x = circleX + Math.cos(angle) * circleRadius;
+                        const z = circleZ + Math.sin(angle) * circleRadius;
+                        
+                        const stone = createBox(x, 3, z, 2, 6, 2, 0x808080);
+                        stone.userData.chunk = chunkKey;
+                        scene.add(stone);
+                    }
+                    break;
+                    
+                case 7: // Maze
+                    for (let i = 0; i < 20; i++) {
+                        const x = offsetX + Math.floor(seededRandom(i * 4) * 8) * 5;
+                        const z = offsetZ + Math.floor(seededRandom(i * 4 + 1) * 8) * 5;
+                        
+                        const wall = createBox(x, 2, z, 4, 4, 2, 0x228b22);
+                        wall.userData.chunk = chunkKey;
+                        scene.add(wall);
+                    }
+                    break;
+                    
+                case 8: // Mountain
+                    const mountainX = offsetX + window.chunkSize / 2;
+                    const mountainZ = offsetZ + window.chunkSize / 2;
+                    const mountainHeight = Math.floor(seededRandom(14) * 12) + 8;
+                    
+                    for (let i = 0; i < mountainHeight; i++) {
+                        const size = 12 - i * 0.5;
+                        const mountain = createBox(mountainX, i + 0.5, mountainZ, size, 1, size, 0x8b8989);
+                        mountain.userData.chunk = chunkKey;
+                        scene.add(mountain);
+                    }
+                    break;
+                    
+                case 9: // Rainbow platforms
+                    const colors = [0xff0000, 0xff7f00, 0xffff00, 0x00ff00, 0x0000ff, 0x4b0082, 0x9400d3];
+                    const rainbowX = offsetX + 10;
+                    
+                    for (let i = 0; i < 7; i++) {
+                        const rainbow = createBox(rainbowX + i * 4, 5 + i * 0.5, offsetZ + window.chunkSize / 2, 3, 0.5, 2, colors[i]);
+                        rainbow.userData.chunk = chunkKey;
+                        scene.add(rainbow);
+                    }
+                    break;
+            }
+            
+            // Add some random decorative elements to every chunk
+            for (let i = 0; i < 5; i++) {
+                const x = offsetX + seededRandom(i * 5 + 100) * window.chunkSize;
+                const z = offsetZ + seededRandom(i * 5 + 101) * window.chunkSize;
+                const y = seededRandom(i * 5 + 102) * 3 + 1;
+                
+                const deco = createBox(x, y, z, 1, 1, 1, 0x00ffff);
+                deco.userData.chunk = chunkKey;
+                scene.add(deco);
+            }
+        }
+
+        function updateInfiniteWorld(playerPosition, level) {
+            if (!window.generatedChunks) return;
+            
+            const playerChunkX = Math.floor(playerPosition.x / window.chunkSize);
+            const playerChunkZ = Math.floor(playerPosition.z / window.chunkSize);
+            
+            // Generate chunks around player
+            for (let dx = -window.renderDistance; dx <= window.renderDistance; dx++) {
+                for (let dz = -window.renderDistance; dz <= window.renderDistance; dz++) {
+                    generateChunk(playerChunkX + dx, playerChunkZ + dz, level);
+                }
+            }
+            
+            // Optional: Remove far chunks to save memory (disabled for now to keep structures)
+            // You could add chunk unloading here if needed
+        }
+
+        function createBox(x, y, z, w, h, d, color) {
+            const geometry = new THREE.BoxGeometry(w, h, d);
+            const material = new THREE.MeshStandardMaterial({ color: color });
+            const box = new THREE.Mesh(geometry, material);
+            box.position.set(x, y, z);
+            box.castShadow = true;
+            box.receiveShadow = true;
+            return box;
+        }
+
+        function createCrystal(x, y, z, color) {
+            const geometry = new THREE.OctahedronGeometry(1.5, 0);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: color,
+                emissive: color,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.8
+            });
+            const crystal = new THREE.Mesh(geometry, material);
+            crystal.position.set(x, y, z);
+            crystal.userData = { type: 'crystal', collected: false };
+            interactables.push(crystal);
+            return crystal;
+        }
+
+        function checkInteraction() {
+            const playerPos = player.position;
+            
+            interactables.forEach(obj => {
+                const distance = playerPos.distanceTo(obj.position);
+                
+                // Check for both crystal types
+                if (distance < 5 && (obj.userData.type === 'crystal' || obj.userData.type === 'hiddenCrystal') && !obj.userData.collected) {
+                    obj.userData.collected = true;
+                    scene.remove(obj);
+                    crystalsFound++;
+                    addToInventory(`Kristall ${crystalsFound}`);
+                    showMessage(`Kristall gefunden! (${crystalsFound}/${TOTAL_CRYSTALS})`, 2000);
+                    
+                    if (crystalsFound < TOTAL_CRYSTALS) {
+                        // Only auto-advance if not in free world (level 6)
+                        if (currentLevel !== 6) {
+                            setTimeout(() => loadLevel(currentLevel + 1), 2000);
+                        }
+                    } else {
+                        endGame();
+                    }
+                }
+
+                if (distance < 5 && obj.userData.type === 'activator') {
+                    const pillarIndex = obj.userData.pillarIndex;
+                    activatePillar(pillarIndex);
+                }
+            });
+        }
+
+        function activatePillar(index) {
+            const pillars = interactables.filter(obj => obj.userData.type === 'pillar');
+            if (pillars[index] && !pillars[index].userData.activated) {
+                pillars[index].userData.activated = true;
+                pillars[index].material.emissive = new THREE.Color(0x00ff00);
+                pillars[index].material.emissiveIntensity = 0.5;
+                
+                showMessage(`Säule ${index + 1} aktiviert!`, 1500);
+                
+                // Check if all pillars activated
+                if (pillars.every(p => p.userData.activated)) {
+                    const crystal = scene.children.find(obj => obj.userData.type === 'hiddenCrystal');
+                    if (crystal) {
+                        crystal.visible = true;
+                        showMessage('Der Kristall erscheint!', 2000);
+                    }
+                }
+            }
+        }
+
+        function addToInventory(item) {
+            inventory.push(item);
+            updateInventoryDisplay();
+        }
+
+        function updateInventoryDisplay() {
+            const itemsDiv = document.getElementById('items');
+            itemsDiv.innerHTML = inventory.map(item => `<div class="item">${item}</div>`).join('');
+        }
+
+        function showMessage(text, duration) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.style.opacity = '1';
+            setTimeout(() => {
+                msg.style.opacity = '0';
+            }, duration);
+        }
+
+        function endGame() {
+            clearInterval(timerInterval);
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            
+            document.getElementById('finalTime').textContent = 
+                `Du hast das Spiel in ${minutes} Minuten und ${seconds} Sekunden abgeschlossen!`;
+            document.getElementById('endScreen').style.display = 'flex';
+        }
+
+        function continueInFreeWorld() {
+            document.getElementById('endScreen').style.display = 'none';
+            // Load level 6 (free world) if not already there
+            if (currentLevel !== 6) {
+                loadLevel(6);
+            }
+        }
+
+        function initTouchControls() {
+            const joystick = document.getElementById('joystick');
+            const joystickStick = document.getElementById('joystickStick');
+            const jumpButton = document.getElementById('jumpButton');
+            const interactButton = document.getElementById('interactButton');
+            const lookPad = document.getElementById('lookPad');
+
+            // Joystick for movement (touch + mouse)
+            joystick.addEventListener('touchstart', handleJoystickStart);
+            joystick.addEventListener('mousedown', handleJoystickStart);
+
+            joystick.addEventListener('touchmove', handleJoystickMove);
+            joystick.addEventListener('mousemove', handleJoystickMove);
+
+            joystick.addEventListener('touchend', handleJoystickEnd);
+            joystick.addEventListener('mouseup', handleJoystickEnd);
+            joystick.addEventListener('mouseleave', handleJoystickEnd);
+
+            function handleJoystickStart(e) {
+                e.preventDefault();
+                joystickActive = true;
+            }
+
+            function handleJoystickMove(e) {
+                e.preventDefault();
+                if (!joystickActive) return;
+
+                const touch = e.touches ? e.touches[0] : e;
+                const rect = joystick.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                let deltaX = touch.clientX - centerX;
+                let deltaY = touch.clientY - centerY;
+
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const maxDistance = 35;
+
+                if (distance > maxDistance) {
+                    deltaX = (deltaX / distance) * maxDistance;
+                    deltaY = (deltaY / distance) * maxDistance;
+                }
+
+                joystickStick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+
+                touchMovement.x = deltaX / maxDistance;
+                touchMovement.y = deltaY / maxDistance;
+            }
+
+            function handleJoystickEnd() {
+                joystickActive = false;
+                joystickStick.style.transform = 'translate(-50%, -50%)';
+                touchMovement.x = 0;
+                touchMovement.y = 0;
+            }
+
+            // Jump button (touch + mouse)
+            jumpButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[' '] = true;
+            });
+            jumpButton.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                keys[' '] = true;
+            });
+
+            jumpButton.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[' '] = false;
+            });
+            jumpButton.addEventListener('mouseup', (e) => {
+                e.preventDefault();
+                keys[' '] = false;
+            });
+
+            // Interact button (touch + mouse)
+            interactButton.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                checkInteraction();
+            });
+            interactButton.addEventListener('click', (e) => {
+                e.preventDefault();
+                checkInteraction();
+            });
+
+            // Look pad for camera (touch + mouse)
+            let lookStartX = 0, lookStartY = 0;
+
+            lookPad.addEventListener('touchstart', handleLookStart);
+            lookPad.addEventListener('mousedown', handleLookStart);
+
+            lookPad.addEventListener('touchmove', handleLookMove);
+            lookPad.addEventListener('mousemove', handleLookMove);
+
+            lookPad.addEventListener('touchend', handleLookEnd);
+            lookPad.addEventListener('mouseup', handleLookEnd);
+            lookPad.addEventListener('mouseleave', handleLookEnd);
+
+            function handleLookStart(e) {
+                e.preventDefault();
+                lookPadActive = true;
+                const touch = e.touches ? e.touches[0] : e;
+                lookStartX = touch.clientX;
+                lookStartY = touch.clientY;
+            }
+
+            function handleLookMove(e) {
+                e.preventDefault();
+                if (!lookPadActive) return;
+
+                const touch = e.touches ? e.touches[0] : e;
+                const deltaX = touch.clientX - lookStartX;
+                const deltaY = touch.clientY - lookStartY;
+
+                yaw -= deltaX * 0.005;
+                pitch -= deltaY * 0.005;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+
+                lookStartX = touch.clientX;
+                lookStartY = touch.clientY;
+            }
+
+            function handleLookEnd() {
+                lookPadActive = false;
+            }
+        }
+
+        function onMouseMove(event) {
+            if (document.pointerLockElement === renderer.domElement) {
+                yaw -= event.movementX * 0.002;
+                pitch -= event.movementY * 0.002;
+                pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, pitch));
+            }
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function updatePlayer(delta) {
+            const speed = 15;
+            const jumpForce = 10;
+
+            direction.set(0, 0, 0);
+
+            // Keyboard controls
+            if (keys['s']) direction.z -= 1;
+            if (keys['w']) direction.z += 1;
+            if (keys['d']) direction.x -= 1;
+            if (keys['a']) direction.x += 1;
+
+            // Touch controls
+            if (isMobile && joystickActive) {
+                direction.x -= touchMovement.x;  // Invertiert für korrekte Richtung
+                direction.z -= touchMovement.y;  // Invertiert für korrekte Richtung
+            }
+
+            direction.normalize();
+            direction.applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw);
+
+            velocity.x = direction.x * speed;
+            velocity.z = direction.z * speed;
+
+            // Gravity
+            velocity.y -= 30 * delta;
+
+            if (keys[' '] && canJump) {
+                velocity.y = jumpForce;
+                canJump = false;
+            }
+
+            player.position.x += velocity.x * delta;
+            player.position.y += velocity.y * delta;
+            player.position.z += velocity.z * delta;
+
+            // Platform collision detection
+            let onPlatform = false;
+            let highestPlatform = -Infinity;
+            
+            scene.children.forEach(obj => {
+                if (obj.geometry && obj.geometry.type === 'BoxGeometry' && obj !== player) {
+                    const box = new THREE.Box3().setFromObject(obj);
+                    const playerBox = new THREE.Box3().setFromObject(player);
+                    
+                    // Check if player is above platform
+                    if (playerBox.min.x < box.max.x && playerBox.max.x > box.min.x &&
+                        playerBox.min.z < box.max.z && playerBox.max.z > box.min.z) {
+                        
+                        // Player is within platform X/Z bounds
+                        const platformTop = box.max.y;
+                        
+                        if (player.position.y >= platformTop - 0.5 && player.position.y <= platformTop + 2 && velocity.y <= 0) {
+                            if (platformTop > highestPlatform) {
+                                highestPlatform = platformTop;
+                                onPlatform = true;
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Apply platform collision
+            if (onPlatform && highestPlatform > -Infinity) {
+                player.position.y = highestPlatform + 1;
+                velocity.y = 0;
+                canJump = true;
+            }
+
+            // Ground collision (only if not on platform)
+            if (!onPlatform && player.position.y < 1) {
+                player.position.y = 1;
+                velocity.y = 0;
+                canJump = true;
+            }
+
+            // Death zone (lava)
+            if (player.position.y < -5) {
+                player.position.set(0, 5, 0);
+                velocity.set(0, 0, 0);
+                showMessage('Du bist in die Lava gefallen!', 2000);
+            }
+
+            // Camera follows player
+            camera.position.x = player.position.x - Math.sin(yaw) * 10;
+            camera.position.y = player.position.y + 5;
+            camera.position.z = player.position.z - Math.cos(yaw) * 10;
+
+            camera.lookAt(player.position.x, player.position.y + 2, player.position.z);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = 0.016; // ~60fps
+            updatePlayer(delta);
+
+            // Update infinite world if in free roam level
+            if (currentLevel === 6 && levels[currentLevel - 1]) {
+                updateInfiniteWorld(player.position, levels[currentLevel - 1]);
+            }
+
+            // Rotate crystals
+            interactables.forEach(obj => {
+                if (obj.userData.type === 'crystal' || obj.userData.type === 'hiddenCrystal') {
+                    obj.rotation.y += 0.02;
+                    obj.position.y += Math.sin(Date.now() * 0.002) * 0.01;
+                }
+            });
+
+            renderer.render(scene, camera);
+        }
+    </script>
 </body>
 </html>
+

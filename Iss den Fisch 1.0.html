@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌊 Tiefsee – Du bist der Fisch</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#000; overflow:hidden; font-family:'Georgia',serif; }
+canvas { display:block; }
+
+#hud {
+  position:fixed; top:0; left:0; width:100%;
+  display:flex; justify-content:space-between; align-items:flex-start;
+  padding:18px 28px; pointer-events:none; z-index:10;
+}
+#lives { font-size:26px; filter:drop-shadow(0 0 8px rgba(255,80,80,0.9)); }
+#size-wrap { display:flex; flex-direction:column; align-items:center; gap:5px; }
+#size-label { color:#7ff4ff; font-size:11px; letter-spacing:3px; text-shadow:0 0 10px #0ff; }
+#size-bg { width:200px; height:12px; border-radius:6px; background:rgba(255,255,255,0.1); border:1px solid rgba(0,255,255,0.3); overflow:hidden; }
+#size-fill { height:100%; width:5%; border-radius:6px; background:linear-gradient(90deg,#00e5ff,#00ff88); box-shadow:0 0 10px rgba(0,229,255,0.7); transition:width 0.3s; }
+#score-box { color:#fff; font-size:13px; letter-spacing:2px; text-align:right; text-shadow:0 0 8px rgba(0,229,255,0.8); }
+#score-num { font-size:24px; color:#7ff4ff; display:block; }
+
+#crosshair {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:26px; height:26px; pointer-events:none; z-index:15;
+}
+#crosshair::before, #crosshair::after {
+  content:''; position:absolute; background:rgba(0,229,255,0.65); border-radius:1px;
+}
+#crosshair::before { width:2px; height:100%; left:50%; transform:translateX(-50%); }
+#crosshair::after  { height:2px; width:100%; top:50%; transform:translateY(-50%); }
+
+#hint {
+  position:fixed; bottom:16px; left:50%; transform:translateX(-50%);
+  color:rgba(100,200,255,0.6); font-size:12px; letter-spacing:2px;
+  pointer-events:none; z-index:10; text-align:center; line-height:1.8;
+}
+
+#flash {
+  position:fixed; inset:0; pointer-events:none;
+  background:rgba(255,40,40,0.45); z-index:50; opacity:0; transition:opacity 0.08s;
+}
+.msg {
+  position:fixed; left:50%; top:38%; transform:translateX(-50%);
+  font-size:26px; font-weight:bold; z-index:60; pointer-events:none;
+  white-space:nowrap; animation:fadeUp 1.1s forwards;
+}
+.bad { color:#ff4455; text-shadow:0 0 20px rgba(255,0,0,0.9); }
+.good { color:#00ff88; text-shadow:0 0 18px rgba(0,255,100,0.9); }
+@keyframes fadeUp {
+  0%   { opacity:1; top:40%; }
+  100% { opacity:0; top:24%; }
+}
+
+#overlay {
+  position:fixed; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:radial-gradient(ellipse at center, rgba(0,18,55,0.97) 0%, rgba(0,0,12,0.99) 100%);
+  z-index:100; pointer-events:all;
+}
+#overlay h1 {
+  font-size:clamp(32px,7vw,68px); color:#7ff4ff; letter-spacing:5px; margin-bottom:16px;
+  text-shadow:0 0 30px rgba(0,229,255,0.9), 0 0 70px rgba(0,100,200,0.5);
+  animation:glow 2.2s ease-in-out infinite;
+}
+@keyframes glow {
+  0%,100% { text-shadow:0 0 30px rgba(0,229,255,0.9), 0 0 70px rgba(0,100,200,0.4); }
+  50%      { text-shadow:0 0 55px rgba(0,229,255,1), 0 0 110px rgba(0,160,255,0.7); }
+}
+#overlay p { color:rgba(150,220,255,0.85); font-size:15px; margin-bottom:8px; text-align:center; max-width:440px; line-height:1.7; }
+.k { background:rgba(0,100,200,0.35); border:1px solid rgba(0,200,255,0.4); border-radius:5px; padding:1px 8px; color:#7ff4ff; }
+#start-btn {
+  margin-top:28px; padding:14px 46px;
+  background:linear-gradient(135deg,#005eff,#00bbff);
+  border:none; border-radius:50px; color:#fff;
+  font-size:17px; letter-spacing:3px; cursor:pointer; text-transform:uppercase;
+  box-shadow:0 0 28px rgba(0,140,255,0.6); transition:all 0.2s;
+}
+#start-btn:hover { transform:scale(1.06); box-shadow:0 0 55px rgba(0,200,255,0.95); }
+#lock-msg {
+  position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
+  color:rgba(0,229,255,0.9); font-size:18px; letter-spacing:2px;
+  text-shadow:0 0 15px #0ff; z-index:80; display:none; pointer-events:none;
+  background:rgba(0,10,30,0.85); padding:14px 28px; border-radius:10px;
+  border:1px solid rgba(0,200,255,0.3);
+}
+</style>
+</head>
+<body>
+
+<div id="hud">
+  <div id="lives">❤️❤️❤️</div>
+  <div id="size-wrap">
+    <div id="size-label">GRÖSSE</div>
+    <div id="size-bg"><div id="size-fill"></div></div>
+    <div id="size-num" style="color:#7ff4ff;font-size:13px;letter-spacing:1px;text-shadow:0 0 8px #0ff;">0.55</div>
+  </div>
+  <div id="score-box"><span id="score-num">0</span>Punkte</div>
+</div>
+
+<div id="crosshair"></div>
+<div id="hint">🖱 Maus = Blick &nbsp;|&nbsp; <b>W</b> Vor &nbsp;<b>S</b> Zurück &nbsp;<b>A/D</b> Drehen &nbsp;|&nbsp; <b>↑</b> Auftauchen &nbsp;<b>↓</b> Abtauchen<br>Klick ins Spiel → Maus einsperren (Esc = freigeben)</div>
+<div id="flash"></div>
+<div id="lock-msg" id="lock-msg">Klicke ins Spiel um die Maus einzusperren</div>
+
+<div id="overlay">
+  <h1>🐠 TIEFSEE</h1>
+  <p>Du <em>bist</em> der Fisch — die Kamera folgt dir von hinten.</p>
+  <p>
+    <span class="k">W</span> Vorwärts &nbsp;
+    <span class="k">S</span> Bremsen &nbsp;
+    <span class="k">A</span>/<span class="k">D</span> Drehen &nbsp;
+    <span class="k">↑</span> Auftauchen &nbsp;
+    <span class="k">↓</span> Abtauchen<br>
+    Maus (nach Klick) = Blickrichtung
+  </p>
+  <p>Friss kleinere Fische 🐟 → werde grösser. Fliehe vor grösseren 🦈!</p>
+  <button id="start-btn">ABTAUCHEN ↓</button>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ════════════════════════════════════════════════
+// RENDERER
+// ════════════════════════════════════════════════
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x00060f);
+scene.fog = new THREE.FogExp2(0x001020, 0.02);
+
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.05, 250);
+
+window.addEventListener('resize', () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+// ════════════════════════════════════════════════
+// LIGHTS
+// ════════════════════════════════════════════════
+scene.add(new THREE.AmbientLight(0x001c3a, 2.5));
+const sun = new THREE.DirectionalLight(0x3399ff, 2.2);
+sun.position.set(10, 40, 20);
+scene.add(sun);
+
+const caustics = [];
+for (let i=0;i<6;i++) {
+  const pl = new THREE.PointLight(0x0044bb, 2.5, 40);
+  pl.position.set((Math.random()-.5)*60,(Math.random()-.5)*30,(Math.random()-.5)*40);
+  scene.add(pl);
+  caustics.push({ l:pl, ox:Math.random()*10, oy:Math.random()*10, sp:0.25+Math.random()*0.4 });
+}
+
+// ════════════════════════════════════════════════
+// WORLD
+// ════════════════════════════════════════════════
+// Seabed
+const sbGeo = new THREE.PlaneGeometry(300,300,40,40);
+const sbA = sbGeo.attributes.position;
+for (let i=0;i<sbA.count;i++) sbA.setZ(i,(Math.random()-.5)*4);
+sbGeo.computeVertexNormals();
+const seabed = new THREE.Mesh(sbGeo, new THREE.MeshStandardMaterial({color:0x091520,roughness:1}));
+seabed.rotation.x = -Math.PI/2;
+seabed.position.y = -28;
+scene.add(seabed);
+
+// Corals
+const coralCols=[0xff2255,0xff5500,0xffaa00,0x00ffaa,0xff00cc,0x00ccff];
+for (let c=0;c<70;c++) {
+  const col=coralCols[c%coralCols.length];
+  const cx=(Math.random()-.5)*200, cz=(Math.random()-.5)*200;
+  for (let s=0;s<3;s++) {
+    const h=1+Math.random()*5;
+    const geo=new THREE.CylinderGeometry(.05+Math.random()*.25,.1+Math.random()*.3,h,6);
+    const m=new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.25}));
+    m.position.set(cx+(Math.random()-.5)*2,-28+h/2,cz+(Math.random()-.5)*2);
+    m.rotation.z=(Math.random()-.5)*.4;
+    scene.add(m);
+  }
+}
+
+// Bubbles
+const bCount=600;
+const bGeo=new THREE.BufferGeometry();
+const bArr=new Float32Array(bCount*3);
+for(let i=0;i<bCount*3;i++) bArr[i]=(Math.random()-.5)*180;
+bGeo.setAttribute('position',new THREE.BufferAttribute(bArr,3));
+const bubbles=new THREE.Points(bGeo,new THREE.PointsMaterial({color:0x88ccff,size:.1,transparent:true,opacity:.3,blending:THREE.AdditiveBlending,depthWrite:false}));
+scene.add(bubbles);
+
+// Plankton
+const pCount=1000;
+const pGeo=new THREE.BufferGeometry();
+const pArr=new Float32Array(pCount*3);
+for(let i=0;i<pCount*3;i++) pArr[i]=(Math.random()-.5)*120;
+pGeo.setAttribute('position',new THREE.BufferAttribute(pArr,3));
+const plankton=new THREE.Points(pGeo,new THREE.PointsMaterial({color:0x00ff88,size:.055,transparent:true,opacity:.18,blending:THREE.AdditiveBlending,depthWrite:false}));
+scene.add(plankton);
+
+// ════════════════════════════════════════════════
+// FISH BUILDER
+// ════════════════════════════════════════════════
+function buildFish(sz, bc, fc, ec) {
+  const g = new THREE.Group();
+  // Body
+  const bGeo=new THREE.SphereGeometry(sz,18,12);
+  bGeo.scale(1,.52,.4);
+  g.add(new THREE.Mesh(bGeo,new THREE.MeshStandardMaterial({color:bc,emissive:bc,emissiveIntensity:.12,roughness:.4,metalness:.25})));
+  // Tail
+  const tGeo=new THREE.ConeGeometry(sz*.48,sz*.95,4);
+  const tMat=new THREE.MeshStandardMaterial({color:fc,emissive:fc,emissiveIntensity:.1});
+  const tail=new THREE.Mesh(tGeo,tMat);
+  tail.rotation.z=Math.PI/2; tail.position.x=-(sz*.88);
+  g.add(tail); g._tail=tail;
+  // Dorsal
+  const df=new THREE.Mesh(new THREE.ConeGeometry(sz*.18,sz*.55,3),tMat.clone());
+  df.position.set(-sz*.05,sz*.44,0); df.rotation.z=.15; g.add(df);
+  // Pectorals
+  for(let s of[-1,1]){
+    const pf=new THREE.Mesh(new THREE.ConeGeometry(sz*.12,sz*.45,3),tMat.clone());
+    pf.position.set(sz*.1,-sz*.15,s*sz*.33);
+    pf.rotation.x=s*.6; pf.rotation.z=1.0; g.add(pf);
+  }
+  // Eyes (both sides)
+  const eMat=new THREE.MeshStandardMaterial({color:0xffffff,emissive:ec||0x88ccff,emissiveIntensity:.8});
+  for(let s of[-1,1]){
+    const eye=new THREE.Mesh(new THREE.SphereGeometry(sz*.13,10,8),eMat);
+    eye.position.set(sz*.72,sz*.1,s*sz*.29); g.add(eye);
+    const pupil=new THREE.Mesh(new THREE.SphereGeometry(sz*.07,8,6),new THREE.MeshStandardMaterial({color:0x000011}));
+    pupil.position.set(sz*.8,sz*.1,s*sz*.34); g.add(pupil);
+  }
+  // Glow
+  g.add(new THREE.Mesh(
+    new THREE.SphereGeometry(sz*1.4,10,6),
+    new THREE.MeshBasicMaterial({color:ec||bc,transparent:true,opacity:.04,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.BackSide})
+  ));
+  return g;
+}
+
+// ════════════════════════════════════════════════
+// GAME STATE
+// ════════════════════════════════════════════════
+let gameRunning=false;
+let lives=3, score=0, playerSize=0.55;
+const MAX_SIZE=4.5;
+let invincible=false;
+let playerGroup=null;
+let yaw=0, pitch=0, fwdSpeed=0;
+let mdx=0, mdy=0;
+const keys={};
+const clock=new THREE.Clock();
+const npcs=[];
+
+const palettes=[
+  [0xff6600,0xff3300,0xff8800],[0xffcc00,0xff8800,0xffdd44],
+  [0xff0066,0xff0033,0xff44aa],[0x00ff88,0x00cc44,0x88ffcc],
+  [0xff44ff,0xcc00cc,0xff88ff],[0x00ddff,0x0088ff,0x44ffff],
+  [0xff4400,0xbb0000,0xff7722],[0x88ff00,0x44aa00,0xccff44],
+  [0xff88cc,0xff0055,0xffbbdd],[0x00ffcc,0x00aa88,0x44ffee],
+];
+
+// ════════════════════════════════════════════════
+// INPUT
+// ════════════════════════════════════════════════
+window.addEventListener('keydown',e=>{
+  keys[e.code]=true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup',e=>keys[e.code]=false);
+
+// Pointer lock
+renderer.domElement.addEventListener('click',()=>{ if(gameRunning) renderer.domElement.requestPointerLock(); });
+document.addEventListener('pointerlockchange',()=>{
+  const lm=document.getElementById('lock-msg');
+  lm.style.display = document.pointerLockElement===renderer.domElement ? 'none' : (gameRunning?'block':'none');
+});
+document.addEventListener('mousemove',e=>{
+  if(document.pointerLockElement===renderer.domElement){ mdx+=e.movementX; mdy+=e.movementY; }
+});
+
+// ════════════════════════════════════════════════
+// HUD
+// ════════════════════════════════════════════════
+function updateHUD(){
+  document.getElementById('lives').textContent='❤️'.repeat(lives)+'🖤'.repeat(Math.max(0,3-lives));
+  document.getElementById('score-num').textContent=score;
+  document.getElementById('size-fill').style.width=Math.min(100,(playerSize/MAX_SIZE)*100)+'%';
+  document.getElementById('size-num').textContent='Grösse: '+playerSize.toFixed(2);
+}
+function showMsg(txt,good){
+  const el=document.createElement('div');
+  el.className='msg '+(good?'good':'bad');
+  el.textContent=txt;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1150);
+}
+function flashRed(){ const f=document.getElementById('flash'); f.style.opacity=1; setTimeout(()=>f.style.opacity=0,130); }
+
+// ════════════════════════════════════════════════
+// DAMAGE / GAME OVER
+// ════════════════════════════════════════════════
+function takeDamage(){
+  if(invincible) return;
+  lives--; updateHUD(); flashRed();
+  showMsg('GEFRESSEN! -1 Leben',false);
+  invincible=true; fwdSpeed=-4;
+  setTimeout(()=>invincible=false,3000);
+  if(lives<=0) endGame();
+}
+function endGame(){
+  gameRunning=false;
+  if(document.pointerLockElement) document.exitPointerLock();
+  const ov=document.getElementById('overlay');
+  ov.innerHTML=`
+    <h1 style="color:#ff4455;animation:none">💀 GEFRESSEN</h1>
+    <p style="font-size:20px;margin:12px 0;color:#7ff4ff">Punkte: <strong>${score}</strong></p>
+    <p>Grösse: ${(playerSize/MAX_SIZE*100).toFixed(0)}% des Maximums erreicht</p>
+    <button id="start-btn" style="margin-top:22px">NOCHMAL ↺</button>`;
+  ov.style.display='flex';
+  document.getElementById('start-btn').addEventListener('click',startGame);
+}
+
+// ════════════════════════════════════════════════
+// SPAWN NPC
+// ════════════════════════════════════════════════
+function spawnNPC(){
+  const pal=palettes[Math.floor(Math.random()*palettes.length)];
+  const r=Math.random();
+  const sf = r<.65 ? .15+Math.random()*.75 : r<.85 ? .8+Math.random()*.4 : 1.3+Math.random()*.9;
+  const sz=Math.max(.15,Math.min(3.8,playerSize*sf));
+  const mesh=buildFish(sz,pal[0],pal[1],pal[2]);
+  const phi=Math.random()*Math.PI*2, th=Math.acos(2*Math.random()-1);
+  const dist=20+Math.random()*35;
+  const px=playerGroup?playerGroup.position.x:0;
+  const py=playerGroup?playerGroup.position.y:0;
+  const pz=playerGroup?playerGroup.position.z:0;
+  mesh.position.set(
+    px+Math.sin(th)*Math.cos(phi)*dist,
+    Math.max(-26,Math.min(18,py+(Math.random()-.5)*20)),
+    pz+Math.cos(th)*dist
+  );
+  const spd=1.0+Math.random()*1.6;
+  const dir=new THREE.Vector3(Math.random()-.5,(Math.random()-.5)*.2,Math.random()-.5).normalize();
+  scene.add(mesh);
+  npcs.push({mesh,size:sz,speed:spd,dir,wobble:Math.random()*100,life:0});
+}
+
+// ════════════════════════════════════════════════
+// REBUILD PLAYER
+// ════════════════════════════════════════════════
+function rebuildPlayer(){
+  const pos=playerGroup?playerGroup.position.clone():new THREE.Vector3();
+  if(playerGroup) scene.remove(playerGroup);
+  playerGroup=buildFish(playerSize,0x00e5ff,0x0077cc,0x00ffff);
+  playerGroup.position.copy(pos);
+  scene.add(playerGroup);
+}
+
+// ════════════════════════════════════════════════
+// START
+// ════════════════════════════════════════════════
+function startGame(){
+  document.getElementById('overlay').style.display='none';
+  document.getElementById('lock-msg').style.display='none';
+  npcs.forEach(n=>scene.remove(n.mesh)); npcs.length=0;
+  if(playerGroup){scene.remove(playerGroup);playerGroup=null;}
+  lives=3;score=0;playerSize=0.55;invincible=false;
+  yaw=0;pitch=0;fwdSpeed=0;mdx=0;mdy=0;
+  updateHUD();
+  playerGroup=buildFish(playerSize,0x00e5ff,0x0077cc,0x00ffff);
+  playerGroup.position.set(0,0,0);
+  scene.add(playerGroup);
+  for(let i=0;i<28;i++) spawnNPC();
+  gameRunning=true;
+  setTimeout(()=>renderer.domElement.requestPointerLock(),200);
+}
+
+// ════════════════════════════════════════════════
+// UPDATE
+// ════════════════════════════════════════════════
+const _fwd=new THREE.Vector3();
+const _tmp=new THREE.Vector3();
+const _quatY=new THREE.Quaternion();
+const _quatX=new THREE.Quaternion();
+const _quat=new THREE.Quaternion();
+const _axisY=new THREE.Vector3(0,1,0);
+const _axisX=new THREE.Vector3(1,0,0);
+
+function update(dt){
+  const t=clock.elapsedTime;
+
+  // Caustics
+  caustics.forEach(c=>{
+    c.l.intensity=2+Math.sin(t*c.sp+c.ox)*1.2;
+    c.l.position.x+=Math.sin(t*.28+c.ox)*.06;
+    c.l.position.y+=Math.cos(t*.18+c.oy)*.04;
+  });
+
+  // Bubbles rise
+  const bp=bubbles.geometry.attributes.position;
+  for(let i=0;i<bCount;i++){
+    bp.setY(i,bp.getY(i)+.022);
+    if(bp.getY(i)>26) bp.setY(i,-28);
+  }
+  bp.needsUpdate=true;
+  plankton.rotation.y+=.0001;
+
+  if(!gameRunning) return;
+
+  // ── ORIENTATION ─────────────────────────────
+  const sens=0.0020;
+  yaw   -= mdx*sens;
+  pitch -= mdy*sens;
+  pitch=Math.max(-Math.PI*.42,Math.min(Math.PI*.42,pitch));
+  mdx=0; mdy=0;
+
+  // Keyboard turn
+  const ts=1.8*dt;
+  if(keys['ArrowLeft'])  yaw+=ts;
+  if(keys['ArrowRight']) yaw-=ts;
+
+  _quatY.setFromAxisAngle(_axisY,yaw);
+  _quatX.setFromAxisAngle(_axisX,pitch);
+  _quat.copy(_quatY).multiply(_quatX);
+
+  // Forward = local +X in fish coords
+  _fwd.set(1,0,0).applyQuaternion(_quat);
+
+  // ── SPEED ────────────────────────────────────
+  const maxSpd=8+playerSize*.6;
+  if(keys['KeyW']){
+    fwdSpeed=Math.min(maxSpd, fwdSpeed+20*dt);
+  } else if(keys['KeyS']){
+    fwdSpeed=Math.max(-2, fwdSpeed-12*dt);
+  } else {
+    fwdSpeed+=(2-fwdSpeed)*0.04;
+    fwdSpeed=Math.max(-2,Math.min(maxSpd,fwdSpeed));
+  }
+
+  // WASD links/rechts drehen
+  if(keys['KeyA']) yaw+=1.8*dt;
+  if(keys['KeyD']) yaw-=1.8*dt;
+
+  playerGroup.position.addScaledVector(_fwd, fwdSpeed*dt);
+
+  // Pfeiltaste hoch/runter = auftauchen/abtauchen
+  const vertSpd=6+playerSize*.4;
+  if(keys['ArrowUp'])   playerGroup.position.y=Math.min(20,  playerGroup.position.y+vertSpd*dt);
+  if(keys['ArrowDown']) playerGroup.position.y=Math.max(-26, playerGroup.position.y-vertSpd*dt);
+
+  playerGroup.position.y=Math.max(-26,Math.min(20,playerGroup.position.y));
+
+  // ── PLAYER MESH ROTATION ─────────────────────
+  playerGroup.quaternion.slerp(_quat,.15);
+
+  // Tail wag
+  if(playerGroup._tail){
+    const w=.3+Math.abs(fwdSpeed)/maxSpd*.5;
+    playerGroup._tail.rotation.y=Math.sin(t*(5+Math.abs(fwdSpeed)*.7))*w;
+  }
+
+  // Invincible blink
+  playerGroup.visible=!invincible||Math.sin(t*14)>0;
+
+  // ── CAMERA ───────────────────────────────────
+  // Sit behind + slightly above fish
+  const camDist=3.2+playerSize*.8;
+  _tmp.set(-camDist, playerSize*.45, 0).applyQuaternion(_quat);
+  const camWant=playerGroup.position.clone().add(_tmp);
+  camera.position.lerp(camWant,.1);
+
+  // Look toward point ahead of fish
+  const lookAt=playerGroup.position.clone().addScaledVector(_fwd,4);
+  camera.lookAt(lookAt);
+
+  // ── NPC ──────────────────────────────────────
+  for(let i=npcs.length-1;i>=0;i--){
+    const npc=npcs[i];
+    npc.life+=dt;
+    if(npc.mesh._tail) npc.mesh._tail.rotation.y=Math.sin(t*5.5+npc.wobble)*.4;
+
+    _tmp.copy(playerGroup.position).sub(npc.mesh.position);
+    const dist=_tmp.length();
+
+    if(npc.size>playerSize*1.12){
+      if(dist<22){ _tmp.normalize(); npc.dir.lerp(_tmp,.022); }
+    } else if(npc.size<playerSize*.9){
+      if(dist<14){ _tmp.normalize().negate(); npc.dir.lerp(_tmp,.045); }
+    }
+    npc.dir.x+=(Math.random()-.5)*.035;
+    npc.dir.y+=(Math.random()-.5)*.015;
+    npc.dir.z+=(Math.random()-.5)*.025;
+    npc.dir.normalize();
+
+    npc.mesh.position.addScaledVector(npc.dir,npc.speed*dt);
+    npc.mesh.position.y=Math.max(-26,Math.min(20,npc.mesh.position.y));
+
+    // Face movement
+    const tgt=npc.mesh.position.clone().add(npc.dir);
+    npc.mesh.lookAt(tgt);
+    npc.mesh.rotateY(Math.PI);
+
+    // Collision
+    if(dist < playerSize*.8+npc.size*.8){
+      if(npc.size<playerSize*.92){
+        playerSize=Math.min(MAX_SIZE,playerSize+npc.size*.18);
+        score+=Math.floor(npc.size*60);
+        updateHUD();
+        showMsg('+'+Math.floor(npc.size*60)+' Punkte!',true);
+        rebuildPlayer();
+        scene.remove(npc.mesh); npcs.splice(i,1); continue;
+      } else if(npc.size>playerSize*1.08){
+        takeDamage();
+      }
+    }
+
+    if(playerGroup.position.distanceTo(npc.mesh.position)>110||npc.life>70){
+      scene.remove(npc.mesh); npcs.splice(i,1);
+    }
+  }
+
+  if(npcs.length<30) spawnNPC();
+}
+
+// ════════════════════════════════════════════════
+// LOOP
+// ════════════════════════════════════════════════
+function animate(){
+  requestAnimationFrame(animate);
+  const dt=Math.min(clock.getDelta(),.05);
+  update(dt);
+  renderer.render(scene,camera);
+}
+animate();
+
+document.getElementById('start-btn').addEventListener('click',startGame);
+</script>
+</body>
+</html>

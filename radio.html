@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>Online Radio</title>
+<title>Online Radio mit Länderfilter</title>
 
 <style>
 body {
@@ -16,10 +16,10 @@ h1 {
   margin-top: 20px;
 }
 
-#search {
+select, #search {
   padding: 10px;
   width: 60%;
-  margin: 20px;
+  margin: 10px;
   border-radius: 8px;
   border: 1px solid #ccc;
 }
@@ -61,11 +61,16 @@ audio {
 
 <p>ℹ️ Hinweis: Einige Sender können je nach Browser oder Stream-Verfügbarkeit nicht funktionieren.</p>
 
+<select id="countrySelect">
+  <option value="">🌍 Alle Länder</option>
+</select>
+
 <input type="text" id="search" placeholder="Sender suchen...">
 
 <ul id="list"></ul>
 
 <audio controls id="player"></audio>
+
 <div id="status"></div>
 
 <script>
@@ -73,10 +78,37 @@ const list = document.getElementById("list");
 const player = document.getElementById("player");
 const status = document.getElementById("status");
 const search = document.getElementById("search");
+const countrySelect = document.getElementById("countrySelect");
 
-// WICHTIG: Nur HTTPS + funktionierende Streams
-function loadStations(query = "") {
-  fetch("https://de1.api.radio-browser.info/json/stations/search?limit=20&hidebroken=true&name=" + query)
+// Länder laden
+function loadCountries() {
+  fetch("https://de1.api.radio-browser.info/json/countries")
+    .then(res => res.json())
+    .then(data => {
+      data.sort((a, b) => a.name.localeCompare(b.name));
+
+      data.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.name;
+        opt.textContent = c.name;
+        countrySelect.appendChild(opt);
+      });
+    });
+}
+
+// Sender laden
+function loadStations(query = "", country = "") {
+  let url = "https://de1.api.radio-browser.info/json/stations/search?limit=30&hidebroken=false";
+
+  if (query) {
+    url += "&name=" + encodeURIComponent(query);
+  }
+
+  if (country) {
+    url += "&country=" + encodeURIComponent(country);
+  }
+
+  fetch(url)
     .then(res => res.json())
     .then(data => {
       list.innerHTML = "";
@@ -85,16 +117,19 @@ function loadStations(query = "") {
         if (!station.url_resolved) return;
 
         const li = document.createElement("li");
-        li.textContent = station.name;
+
+        li.textContent = station.name + " (" + (station.country || "unbekannt") + ")";
 
         li.onclick = () => {
           status.textContent = "Lade Stream...";
           player.src = station.url_resolved;
-          player.play().then(() => {
-            status.textContent = "Spielt: " + station.name;
-          }).catch(() => {
-            status.textContent = "❌ Kann nicht abgespielt werden";
-          });
+          player.play()
+            .then(() => {
+              status.textContent = "Spielt: " + station.name;
+            })
+            .catch(() => {
+              status.textContent = "❌ Kann nicht abgespielt werden";
+            });
         };
 
         list.appendChild(li);
@@ -102,17 +137,17 @@ function loadStations(query = "") {
     });
 }
 
-// Suche
+// Events
 search.addEventListener("input", () => {
-  loadStations(search.value);
+  loadStations(search.value, countrySelect.value);
 });
 
-// Fehler abfangen
-player.onerror = () => {
-  status.textContent = "❌ Stream blockiert oder defekt";
-};
+countrySelect.addEventListener("change", () => {
+  loadStations(search.value, countrySelect.value);
+});
 
 // Start
+loadCountries();
 loadStations();
 </script>
 

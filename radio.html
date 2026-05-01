@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Online Radio</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f5f5f5;
+  color: #222;
+  text-align: center;
+}
+
+h1 {
+  margin-top: 20px;
+}
+
+#search {
+  padding: 10px;
+  width: 60%;
+  margin: 20px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 10px;
+  margin: 5px auto;
+  width: 60%;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid #ddd;
+}
+
+li:hover {
+  background: #eee;
+}
+
+audio {
+  margin-top: 20px;
+  width: 80%;
+}
+
+#status {
+  margin-top: 10px;
+  color: red;
+}
+</style>
+</head>
+
+<body>
+
+<h1>📻 Online Radio</h1>
+
+<p>ℹ️ Hinweis: Einige Sender können je nach Browser oder Stream-Verfügbarkeit nicht funktionieren.</p>
+
+<input type="text" id="search" placeholder="Sender suchen...">
+
+<ul id="list"></ul>
+
+<audio controls id="player"></audio>
+<div id="status"></div>
+
+<script>
+const list = document.getElementById("list");
+const player = document.getElementById("player");
+const status = document.getElementById("status");
+const search = document.getElementById("search");
+
+// WICHTIG: Nur HTTPS + funktionierende Streams
+function loadStations(query = "") {
+  fetch("https://de1.api.radio-browser.info/json/stations/search?limit=20&hidebroken=true&name=" + query)
+    .then(res => res.json())
+    .then(data => {
+      list.innerHTML = "";
+
+      data.forEach(station => {
+        if (!station.url_resolved) return;
+
+        const li = document.createElement("li");
+        li.textContent = station.name;
+
+        li.onclick = () => {
+          status.textContent = "Lade Stream...";
+          player.src = station.url_resolved;
+          player.play().then(() => {
+            status.textContent = "Spielt: " + station.name;
+          }).catch(() => {
+            status.textContent = "❌ Kann nicht abgespielt werden";
+          });
+        };
+
+        list.appendChild(li);
+      });
+    });
+}
+
+// Suche
+search.addEventListener("input", () => {
+  loadStations(search.value);
+});
+
+// Fehler abfangen
+player.onerror = () => {
+  status.textContent = "❌ Stream blockiert oder defekt";
+};
+
+// Start
+loadStations();
+</script>
+
+</body>
+</html>
